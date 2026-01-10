@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MRSA: Ward Survival (Story Mode)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f172a;
+      --card:#111827;
+      --card2:#0b1226;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --line:rgba(255,255,255,0.10);
+      --blue:#3b82f6;
+      --green:#22c55e;
+      --amber:#f59e0b;
+      --red:#ef4444;
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+      background: radial-gradient(circle at 20% 15%, #1d4ed8 0%, #0b1020 48%, #050815 100%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .container{
+      width:100%;
+      max-width:1100px;
+      background: rgba(17,24,39,0.95);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.55);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .scan-line{
+      position:absolute; left:0; top:-6px; height:4px; width:100%;
+      background: rgba(59,130,246,0.22);
+      animation: scan 3.8s linear infinite;
+      pointer-events:none;
+    }
+    @keyframes scan{
+      0%{ top:-6px; opacity:0; }
+      10%{ opacity:1; }
+      90%{ opacity:1; }
+      100%{ top:105%; opacity:0; }
+    }
+
+    header{
+      padding:18px 18px 10px;
+      border-bottom:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(2,6,23,0.65), rgba(2,6,23,0.15));
+    }
+
+    h1{
+      text-align:center;
+      font-size: 1.9rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom:6px;
+    }
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      line-height:1.45;
+      margin-bottom:8px;
+    }
+    .objective{
+      text-align:center;
+      color: rgba(226,232,240,0.95);
+      font-weight:800;
+      font-size:0.95rem;
+      margin-bottom:6px;
+    }
+
+    .hud{
+      display:grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr;
+      gap:12px;
+      padding:14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(15,23,42,0.55);
+    }
+
+    .hudCard{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .label{
+      font-size:0.82rem;
+      color: var(--muted);
+      font-weight:800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom:8px;
+    }
+
+    .bar{
+      height: 18px;
+      background: rgba(148,163,184,0.20);
+      border-radius: 999px;
+      overflow:hidden;
+      position:relative;
+    }
+    .fill{
+      height:100%;
+      width:50%;
+      border-radius: 999px;
+      transition: width .35s ease;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding-right:8px;
+      font-weight:900;
+      font-size:0.82rem;
+      color: rgba(255,255,255,0.95);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+      white-space:nowrap;
+    }
+    .hp{ background: linear-gradient(90deg, var(--green), #16a34a); }
+    .hp.warn{ background: linear-gradient(90deg, var(--amber), #d97706); }
+    .hp.crit{ background: linear-gradient(90deg, #fb7185, var(--red)); }
+
+    .risk{ background: linear-gradient(90deg, #60a5fa, var(--blue)); }
+    .risk.warn{ background: linear-gradient(90deg, var(--amber), #d97706); }
+    .risk.crit{ background: linear-gradient(90deg, #fb7185, var(--red)); }
+
+    .meta{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      font-weight:800;
+      color: rgba(226,232,240,0.92);
+    }
+    .meta small{ color: rgba(148,163,184,0.95); font-weight:800; }
+
+    .main{
+      display:grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      padding: 14px 18px 18px;
+    }
+
+    .card{
+      background: rgba(11,18,38,0.75);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .sceneTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .badge{
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.08);
+      padding:6px 10px;
+      border-radius: 999px;
+      font-weight: 900;
+      color: rgba(226,232,240,0.95);
+      font-size: 0.88rem;
+    }
+    .threat{
+      font-weight: 900;
+      color: rgba(226,232,240,0.90);
+      text-align:right;
+      font-size: 0.95rem;
+    }
+
+    .title{
+      font-size: 1.25rem;
+      font-weight: 950;
+      margin: 6px 0 10px;
+    }
+    .story{
+      color: rgba(226,232,240,0.92);
+      line-height: 1.6;
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+    }
+
+    .critBox{
+      display:none;
+      margin: 10px 0 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(239,68,68,0.75);
+      background: rgba(239,68,68,0.12);
+      color: #fecaca;
+      font-weight: 900;
+      animation: pulse 1.9s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow: 0 0 0 0 rgba(239,68,68,0.22); }
+      70%{ box-shadow: 0 0 0 12px rgba(239,68,68,0.0); }
+      100%{ box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
+    }
+
+    .choices{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+
+    .choice{
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 12px 12px;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      text-align:left;
+      color: rgba(226,232,240,0.95);
+    }
+    .choice:hover:not(:disabled){
+      transform: translateX(4px);
+      border-color: rgba(59,130,246,0.75);
+      background: rgba(255,255,255,0.08);
+    }
+    .choice:disabled{
+      opacity:0.55;
+      cursor:not-allowed;
+      transform:none;
+    }
+    .flavor{
+      display:block;
+      margin-top:6px;
+      color: rgba(148,163,184,0.95);
+      font-size: 0.88rem;
+      font-style: italic;
+    }
+    .nope{
+      color: #fca5a5;
+      font-weight:900;
+    }
+
+    .feedback{
+      display:none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: rgba(226,232,240,0.95);
+      line-height:1.5;
+    }
+    .feedback.good{
+      border-color: rgba(34,197,94,0.55);
+      background: rgba(34,197,94,0.10);
+    }
+    .feedback.bad{
+      border-color: rgba(239,68,68,0.55);
+      background: rgba(239,68,68,0.10);
+    }
+
+    .rowBtns{
+      display:flex;
+      gap:10px;
+      margin-top: 12px;
+    }
+    .btn{
+      width:100%;
+      border:none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 950;
+      cursor:pointer;
+      color:white;
+      transition: filter .15s ease, transform .15s ease;
+    }
+    .btn:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+    .btnNext{ background: linear-gradient(135deg, #60a5fa, var(--blue)); display:none; }
+    .btnMenu{ background: rgba(100,116,139,0.95); }
+
+    .log{
+      background: rgba(2,6,23,0.55);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px;
+      height: 520px;
+      overflow:auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 0.90rem;
+      line-height: 1.5;
+    }
+    .entry{
+      padding: 10px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.10);
+      color: rgba(148,163,184,0.98);
+    }
+    .entry:last-child{ border-bottom:none; }
+    .entry .t{ color:#93c5fd; font-weight: 900; margin-bottom:4px; }
+    .entry.good{ color:#86efac; }
+    .entry.bad{ color:#fca5a5; }
+    .entry.crit{ color:#f87171; font-weight:900; }
+
+    .end{
+      position:absolute; inset:0;
+      background: rgba(2,6,23,0.92);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+      z-index: 10;
+    }
+    .endBox{
+      width:100%;
+      max-width: 760px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 18px;
+      text-align:center;
+    }
+    .endBox h2{
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+    .endBox p{
+      color: rgba(226,232,240,0.92);
+      line-height: 1.6;
+      margin-bottom: 14px;
+      font-size: 1.05rem;
+    }
+    .endGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btnRestart{ background: linear-gradient(135deg, #22c55e, #16a34a); }
+    .btnClose{ background: linear-gradient(135deg, #fb7185, var(--red)); }
+
+    @media (max-width: 900px){
+      .hud{ grid-template-columns: 1fr; }
+      .main{ grid-template-columns: 1fr; }
+      .log{ height: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="scan-line"></div>
+
+    <header>
+      <h1>MRSA: Ward Survival (Story Mode)</h1>
+      <div class="subtitle">You’re the on‑call junior doctor covering ED + surgical ward. One patient. One shift. A ward that can spiral.</div>
+      <div class="objective">WIN: Reach Hour 12 with Patient HP &gt; 0 AND Outbreak Risk &lt; 100. LOSE if HP hits 0 or Risk hits 100.</div>
+    </header>
+
+    <section class="hud">
+      <div class="hudCard">
+        <div class="label">Patient HP</div>
+        <div class="bar"><div id="hpFill" class="fill hp" style="width:85%;">85</div></div>
+      </div>
+      <div class="hudCard">
+        <div class="label">Outbreak Risk</div>
+        <div class="bar"><div id="riskFill" class="fill risk" style="width:20%;">20</div></div>
+      </div>
+      <div class="hudCard meta">
+        <div><small>Hour</small> <span id="hourText">1 / 12</span></div>
+        <div><small>PPE kits</small> <span id="ppeText">3</span></div>
+        <div><small>Pressure</small> <span id="pressureText">25</span></div>
+      </div>
+    </section>
+
+    <section class="main">
+      <div class="card">
+        <div class="sceneTop">
+          <div class="badge" id="zoneBadge">ZONE: ED TRIAGE</div>
+          <div class="threat" id="threatLine">Containment is possible—barely.</div>
+        </div>
+
+        <div class="title" id="sceneTitle">Scene</div>
+        <div class="story" id="sceneText"></div>
+
+        <div class="critBox" id="critBox">CRITICAL EVENT</div>
+
+        <div class="choices" id="choices"></div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="rowBtns">
+          <button class="btn btnMenu" onclick="location.reload()">Restart / Menu</button>
+          <button class="btn btnNext" id="nextBtn" onclick="game.nextHour()">Next hour →</button>
+        </div>
+      </div>
+
+      <div class="log" id="log">
+        <div class="entry">
+          <div class="t">SYSTEM</div>
+          Objective locked: keep patient alive; prevent MRSA spread.
+        </div>
+      </div>
+    </section>
+
+    <div class="end" id="endOverlay">
+      <div class="endBox">
+        <h2 id="endTitle">END</h2>
+        <p id="endDesc">desc</p>
+        <div class="endGrid">
+          <button class="btn btnRestart" onclick="location.reload()">Play again</button>
+          <button class="btn btnClose" onclick="location.reload()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+
+  class Game {
+    constructor(){
+      this.maxHours = 12;
+
+      // Harder baseline (per your feedback).
+      this.hp = 85;
+      this.risk = 20;
+      this.hour = 1;
+
+      this.ppe = 3;
+
+      // Pressure is hidden difficulty: increases crit chance + passive damage/spread.
+      this.pressure = 25;
+
+      // Persistent flags that make story “haunt” you.
+      this.flags = {
+        gotCultures: false,
+        didDrainage: false,
+        onMRSAActive: false,
+        suspectPneumonia: false,
+        visitorBreach: false,
+        deviceBreach: false,
+        staffExposure: false
+      };
+
+      this.waitingNext = false;
+      this.lastSceneWasCrit = false;
+
+      this.story = this.buildStory();
+      this.render();
+      this.loadScene();
+    }
+
+    buildStory(){
+      return [
+        {
+          id: "ed_triage",
+          zone: "ED TRIAGE",
+          title: "Hour 1 — The intake",
+          text: "A 28‑year‑old presents with a large painful thigh abscess, fever, and tachycardia. The waiting room is packed. A nurse whispers: “He was here last month for a skin infection.”",
+          choices: [
+            {
+              text: "Do bedside incision & drainage + send pus for culture.",
+              flavor: "Treat the source early; you still need antibiotics.",
+              fx: { hp:+6, risk:+2, ppe:0, pressure:-3 },
+              apply: (g)=>{ g.flags.didDrainage=true; g.flags.gotCultures=true; }
+            },
+            {
+              text: "Take blood cultures, start IV MRSA-active therapy now.",
+              flavor: "Fast antimicrobial coverage; source control may still be needed.",
+              fx: { hp:+4, risk:+1, ppe:0, pressure:-4 },
+              apply: (g)=>{ g.flags.gotCultures=true; g.flags.onMRSAActive=true; }
+            },
+            {
+              text: "Give analgesia and wait for senior review.",
+              flavor: "Comfort now; the infection clock keeps ticking.",
+              fx: { hp:-10, risk:+6, ppe:0, pressure:+6 }
+            }
+          ]
+        },
+        {
+          id: "ward_bed",
+          zone: "SURGICAL WARD",
+          title: "Hour 2 — Bed placement",
+          text: "ED needs the bed. The patient is moved to a 4‑bed bay. The patient next to him is post‑op with a fresh wound and drains.",
+          choices: [
+            {
+              text: "Cohort away from wounds + put a clear bedside sign (uses 1 PPE kit).",
+              flavor: "Practical containment without a full shutdown.",
+              fx: { hp:0, risk:-8, ppe:-1, pressure:-2 }
+            },
+            {
+              text: "Keep the bed; focus on pain control and fluids.",
+              flavor: "Care continues, but proximity increases cross‑contamination risk.",
+              fx: { hp:+2, risk:+7, ppe:0, pressure:+3 }
+            },
+            {
+              text: "Ask for a single room (may delay transfer).",
+              flavor: "Safer placement, but logistics cost time.",
+              fx: { hp:-4, risk:-10, ppe:0, pressure:-1 }
+            }
+          ]
+        },
+        {
+          id: "cough_starts",
+          zone: "BEDSIDE",
+          title: "Hour 3 — New symptom",
+          text: "The patient starts coughing more and complains of chest tightness. SpO₂ is trending down. The ward is noisy and busy.",
+          choices: [
+            {
+              text: "Order CXR + start oxygen + broaden plan for possible MRSA pneumonia.",
+              flavor: "Clinical escalation; more staff traffic increases spread risk slightly.",
+              fx: { hp:+3, risk:+3, ppe:0, pressure:-1 },
+              apply: (g)=>{ g.flags.suspectPneumonia=true; g.flags.onMRSAActive=true; }
+            },
+            {
+              text: "Assume anxiety and keep focus on the abscess.",
+              flavor: "If this is pneumonia, delay hurts.",
+              fx: { hp:-9, risk:+2, ppe:0, pressure:+5 },
+              apply: (g)=>{ g.flags.suspectPneumonia=true; }
+            },
+            {
+              text: "Move to higher‑acuity bay with dedicated equipment (uses 1 PPE kit).",
+              flavor: "Safer workflow; resource heavy.",
+              fx: { hp:+1, risk:-6, ppe:-1, pressure:-2 },
+              apply: (g)=>{ g.flags.suspectPneumonia=true; }
+            }
+          ]
+        },
+        {
+          id: "equipment_breach",
+          zone: "WARD ROUND",
+          title: "Hour 4 — The shared device",
+          text: "A portable BP cuff and thermometer are being used bed‑to‑bed. You notice no one is clearly wiping between patients.",
+          choices: [
+            {
+              text: "Create a wipe checkpoint and label equipment for this bay.",
+              flavor: "Small system fix that prevents big outbreaks.",
+              fx: { hp:0, risk:-10, ppe:0, pressure:-3 },
+              apply: (g)=>{ g.flags.deviceBreach=false; }
+            },
+            {
+              text: "Say nothing—too many urgent tasks.",
+              flavor: "Silent transmission loves busy wards.",
+              fx: { hp:-3, risk:+12, ppe:0, pressure:+6 },
+              apply: (g)=>{ g.flags.deviceBreach=true; }
+            },
+            {
+              text: "Ask nurse to “just wipe it when possible.”",
+              flavor: "Partial compliance; partial benefit.",
+              fx: { hp:0, risk:+4, ppe:0, pressure:+2 },
+              apply: (g)=>{ g.flags.deviceBreach=true; }
+            }
+          ]
+        },
+        {
+          id: "family_arrives",
+          zone: "VISITORS",
+          title: "Hour 5 — The family",
+          text: "Family arrive, hugging the patient, moving chairs, touching curtains, then heading to the communal kitchenette. They’re not trying to cause harm—just scared.",
+          choices: [
+            {
+              text: "Teach them ‘safe contact’ rules + hand hygiene + keep them in-room.",
+              flavor: "Realistic and effective without escalating conflict.",
+              fx: { hp:+1, risk:-8, ppe:0, pressure:-2 },
+              apply: (g)=>{ g.flags.visitorBreach=false; }
+            },
+            {
+              text: "Hand them PPE (uses 2 PPE kits).",
+              flavor: "Very protective, but may cost you later.",
+              fx: { hp:0, risk:-10, ppe:-2, pressure:-2 },
+              apply: (g)=>{ g.flags.visitorBreach=false; }
+            },
+            {
+              text: "Let it slide; patient morale matters.",
+              flavor: "Morale improves; spread risk explodes.",
+              fx: { hp:+2, risk:+18, ppe:0, pressure:+8 },
+              apply: (g)=>{ g.flags.visitorBreach=true; }
+            }
+          ]
+        },
+        {
+          id: "lab_calls",
+          zone: "LAB",
+          title: "Hour 6 — Preliminary results",
+          text: "Lab calls: Gram‑positive cocci in clusters from pus; MRSA strongly suspected. The patient’s BP is wobbling again.",
+          choices: [
+            {
+              text: "Lock in MRSA‑active antibiotics + monitor renal function.",
+              flavor: "You commit early and reduce deterioration risk.",
+              fx: { hp:+6, risk:+1, ppe:0, pressure:-4 },
+              apply: (g)=>{ g.flags.onMRSAActive=true; g.flags.gotCultures=true; }
+            },
+            {
+              text: "Hold antibiotics until full sensitivities.",
+              flavor: "Stewardship is good—when the patient is stable.",
+              fx: { hp:-12, risk:+4, ppe:0, pressure:+7 }
+            },
+            {
+              text: "Escalate care level (MET/rapid response) for shock trend.",
+              flavor: "Stabilizes patient, increases traffic and logistics.",
+              fx: { hp:+4, risk:+4, ppe:0, pressure:-1 }
+            }
+          ]
+        },
+        {
+          id: "handover",
+          zone: "HANDOVER",
+          title: "Hour 7 — Shift change",
+          text: "Handover is rushed. A junior nurse asks: “Is this the MRSA patient?” Someone else says: “Not confirmed.” Confusion is spreading.",
+          choices: [
+            {
+              text: "Quick huddle + clarify plan + assign ‘clean/dirty’ roles (uses 1 PPE kit).",
+              flavor: "A systems move: clarity prevents mistakes.",
+              fx: { hp:0, risk:-9, ppe:-1, pressure:-3 }
+            },
+            {
+              text: "Write a note and hope it’s read.",
+              flavor: "Notes don’t stop exposures in real time.",
+              fx: { hp:0, risk:+6, ppe:0, pressure:+3 }
+            },
+            {
+              text: "Do nothing; you’re drowning.",
+              flavor: "When staff are unsure, the ward becomes the vector.",
+              fx: { hp:-4, risk:+10, ppe:0, pressure:+6 }
+            }
+          ]
+        },
+        {
+          id: "deterioration",
+          zone: "BEDSIDE",
+          title: "Hour 8 — Deterioration",
+          text: "The patient becomes confused and febrile again. You suspect evolving sepsis. The bay is tense.",
+          choices: [
+            {
+              text: "Sepsis bundle: fluids, repeat cultures, lactate, close obs.",
+              flavor: "Practical and realistic. Keeps patient alive.",
+              fx: { hp:+8, risk:+2, ppe:0, pressure:-3 }
+            },
+            {
+              text: "Transfer to ICU now.",
+              flavor: "Safer monitoring, but transport can spread contamination.",
+              fx: { hp:+5, risk:+5, ppe:0, pressure:+1 }
+            },
+            {
+              text: "Wait—he ‘looks okay’ between fevers.",
+              flavor: "Sepsis doesn’t wait for your confidence.",
+              fx: { hp:-14, risk:+2, ppe:0, pressure:+8 }
+            }
+          ]
+        }
+      ];
+    }
+
+    threatText(){
+      if(this.risk >= 75) return "Red zone. One breach could trigger ward shutdown.";
+      if(this.risk >= 45) return "Containment is slipping. Secondary cases are likely.";
+      return "Containment is possible—barely.";
+    }
+
+    hpClass(){
+      if(this.hp <= 30) return "hp crit";
+      if(this.hp <= 60) return "hp warn";
+      return "hp";
+    }
+
+    riskClass(){
+      if(this.risk >= 75) return "risk crit";
+      if(this.risk >= 45) return "risk warn";
+      return "risk";
+    }
+
+    updateHUD(){
+      const hpFill = document.getElementById("hpFill");
+      const riskFill = document.getElementById("riskFill");
+
+      hpFill.style.width = `${clamp(this.hp,0,100)}%`;
+      hpFill.textContent = `${clamp(this.hp,0,100)}`;
+      hpFill.className = `fill ${this.hpClass()}`;
+
+      riskFill.style.width = `${clamp(this.risk,0,100)}%`;
+      riskFill.textContent = `${clamp(this.risk,0,100)}`;
+      riskFill.className = `fill ${this.riskClass()}`;
+
+      document.getElementById("hourText").textContent = `${this.hour} / ${this.maxHours}`;
+      document.getElementById("ppeText").textContent = `${this.ppe}`;
+      document.getElementById("pressureText").textContent = `${this.pressure}`;
+
+      document.getElementById("threatLine").textContent = this.threatText();
+    }
+
+    log(text, kind=""){
+      const log = document.getElementById("log");
+      const div = document.createElement("div");
+      div.className = `entry ${kind}`.trim();
+      div.innerHTML = `<div class="t">HR ${this.hour}</div>${text}`;
+      log.prepend(div);
+    }
+
+    currentSceneIndex(){
+      return Math.min(this.hour - 1, this.story.length - 1);
+    }
+
+    // Random crit events: chance scales with risk + pressure + known breaches.
+    maybeCrit(){
+      // Base crit chance
+      let chance = 5 + (this.risk * 0.25) + (this.pressure * 0.35);
+
+      if(this.flags.visitorBreach) chance += 6;
+      if(this.flags.deviceBreach) chance += 6;
+      if(this.flags.staffExposure) chance += 5;
+      if(!this.flags.onMRSAActive && this.hour >= 5) chance += 8;
+
+      chance = clamp(chance, 0, 65);
+
+      const roll = Math.random() * 100;
+      if(roll > chance) return null;
+
+      const pool = [
+        {
+          zone: "CRITICAL ALERT",
+          title: "CRIT — Secondary case",
+          text: "In the neighboring bed, the post‑op patient’s wound looks inflamed and draining. Staff are whispering: “Is it the MRSA?”",
+          choices: [
+            { text:"Escalate surveillance + isolate the secondary case (uses 1 PPE kit).",
+              flavor:"Containment move; slows ward spread.",
+              fx:{ hp:-1, risk:-14, ppe:-1, pressure:-4 },
+              log:"Secondary case isolated; surveillance initiated."
+            },
+            { text:"Mark it for review later; you can’t handle another case.",
+              flavor:"Delay creates an outbreak chain.",
+              fx:{ hp:-2, risk:+16, ppe:0, pressure:+8 },
+              log:"Secondary case delayed; ward risk spikes."
+            },
+            { text:"Ask senior nurse to manage it while you stabilize your patient.",
+              flavor:"Shared load; partial containment.",
+              fx:{ hp:+1, risk:-6, ppe:0, pressure:-1 },
+              log:"Delegation accepted; moderate containment."
+            }
+          ]
+        },
+        {
+          zone: "CRITICAL ALERT",
+          title: "CRIT — Staff exposure",
+          text: "A staff member realizes they changed the dressing without gloves earlier. They’re shaken and want to keep working.",
+          choices: [
+            { text:"Remove from patient care + debrief + document exposure.",
+              flavor:"Protects the ward; costs staffing.",
+              fx:{ hp:0, risk:-10, ppe:0, pressure:-2 },
+              log:"Exposure managed; staff removed from direct care."
+            },
+            { text:"Tell them to wash hands and carry on.",
+              flavor:"Realistic in busy wards—also dangerous.",
+              fx:{ hp:0, risk:+12, ppe:0, pressure:+6 },
+              log:"Exposure brushed off; potential onward transmission."
+            },
+            { text:"Give them your last PPE kit to continue safely.",
+              flavor:"Short-term fix; future shortage.",
+              fx:{ hp:0, risk:-6, ppe:-1, pressure:+1 },
+              log:"PPE redirected to exposed staff; stock reduced."
+            }
+          ]
+        },
+        {
+          zone: "CRITICAL ALERT",
+          title: "CRIT — Acute kidney injury",
+          text: "Labs return: creatinine has jumped. Urine output is dropping. Your antibiotic plan is now a balancing act.",
+          choices: [
+            { text:"Adjust regimen + hydrate + monitor closely.",
+              flavor:"Protect kidneys while keeping coverage.",
+              fx:{ hp:-3, risk:+1, ppe:0, pressure:-2 },
+              log:"AKI recognized; regimen adjusted."
+            },
+            { text:"Ignore it—treat infection at all costs.",
+              flavor:"You might win the infection and lose the patient.",
+              fx:{ hp:-15, risk:0, ppe:0, pressure:+8 },
+              log:"AKI ignored; patient destabilizing."
+            },
+            { text:"Call renal / ICU advice early.",
+              flavor:"Buys expertise; adds logistics.",
+              fx:{ hp:+2, risk:+3, ppe:0, pressure:-1 },
+              log:"Renal/ICU consulted; support arranged."
+            }
+          ]
+        }
+      ];
+
+      return pool[Math.floor(Math.random()*pool.length)];
+    }
+
+    passiveTick(){
+      // Make it harder to coast:
+      // HP drifts down with pressure (and if not on MRSA-active therapy).
+      // Risk drifts up with pressure + breaches + low PPE.
+      let hpLoss = Math.round(2 + this.pressure / 18);
+      let riskGain = Math.round(2 + this.pressure / 16);
+
+      if(!this.flags.onMRSAActive && this.hour >= 4) hpLoss += 2;
+      if(!this.flags.didDrainage && this.hour >= 3) hpLoss += 1;
+
+      if(this.ppe <= 0) riskGain += 4;
+      if(this.flags.visitorBreach) riskGain += 2;
+      if(this.flags.deviceBreach) riskGain += 2;
+
+      // Natural pressure drift upwards unless you’re doing well
+      let pressureGain = 4;
+      if(this.risk >= 60) pressureGain += 2;
+      if(this.hp <= 45) pressureGain += 2;
+
+      this.hp = clamp(this.hp - hpLoss, 0, 100);
+      this.risk = clamp(this.risk + riskGain, 0, 100);
+      this.pressure = clamp(this.pressure + pressureGain, 0, 100);
+
+      return { hpLoss, riskGain, pressureGain };
+    }
+
+    loadScene(){
+      this.lastSceneWasCrit = false;
+
+      const crit = (this.hour >= 3) ? this.maybeCrit() : null;
+      const critBox = document.getElementById("critBox");
+
+      let scene = null;
+      if(crit){
+        this.lastSceneWasCrit = true;
+        scene = crit;
+        critBox.style.display = "block";
+        critBox.textContent = `${scene.title} — Choose now`;
+      } else {
+        critBox.style.display = "none";
+        scene = this.story[this.currentSceneIndex()] || this.story[this.story.length-1];
+      }
+
+      document.getElementById("zoneBadge").textContent = `ZONE: ${scene.zone || "WARD"}`;
+      document.getElementById("sceneTitle").textContent = scene.title || `Hour ${this.hour}`;
+      document.getElementById("sceneText").textContent = scene.text || "";
+
+      const choices = document.getElementById("choices");
+      const feedback = document.getElementById("feedback");
+      const nextBtn = document.getElementById("nextBtn");
+
+      feedback.style.display = "none";
+      feedback.className = "feedback";
+      feedback.textContent = "";
+      nextBtn.style.display = "none";
+
+      choices.innerHTML = "";
+      (scene.choices || []).forEach((c)=>{
+        const btn = document.createElement("button");
+        btn.className = "choice";
+
+        const ppeCost = (c.fx && c.fx.ppe) ? c.fx.ppe : 0;
+        const ppeBlocked = (ppeCost < 0 && (this.ppe + ppeCost) < 0);
+
+        if(ppeBlocked){
+          btn.disabled = true;
+          btn.innerHTML = `${c.text}<span class="flavor nope">(Not enough PPE)</span>`;
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = `${c.text}<span class="flavor">${c.flavor || ""}</span>`;
+          btn.onclick = ()=>this.pick(scene, c);
+        }
+        choices.appendChild(btn);
+      });
+
+      this.updateHUD();
+    }
+
+    pick(scene, choice){
+      if(this.waitingNext) return;
+
+      // Disable all choices
+      document.querySelectorAll(".choice").forEach(b=>b.disabled=true);
+
+      // Apply immediate effects
+      const fx = choice.fx || {};
+      this.hp = clamp(this.hp + (fx.hp||0), 0, 100);
+      this.risk = clamp(this.risk + (fx.risk||0), 0, 100);
+      this.ppe = clamp(this.ppe + (fx.ppe||0), 0, 9);
+      this.pressure = clamp(this.pressure + (fx.pressure||0), 0, 100);
+
+      if(typeof choice.apply === "function") choice.apply(this);
+
+      // Passive end-of-hour drift
+      const drift = this.passiveTick();
+
+      // Log
+      const logText =
+        `<b>Choice:</b> ${choice.text}<br>` +
+        `<b>Immediate:</b> HP ${(fx.hp||0)>=0?"+":""}${fx.hp||0}, Risk ${(fx.risk||0)>=0?"+":""}${fx.risk||0}, PPE ${(fx.ppe||0)>=0?"+":""}${fx.ppe||0}<br>` +
+        `<b>End-hour drift:</b> -${drift.hpLoss} HP, +${drift.riskGain} Risk, +${drift.pressureGain} Pressure`;
+      let kind = "";
+      if((fx.risk||0) >= 10 || drift.riskGain >= 7 || (fx.hp||0) <= -10) kind = "bad";
+      if((fx.risk||0) <= -8 || (fx.hp||0) >= 6) kind = "good";
+      if(this.lastSceneWasCrit) kind = "crit";
+      this.log(logText, kind);
+
+      // Feedback
+      const feedback = document.getElementById("feedback");
+      feedback.style.display = "block";
+      const goodish = ( (fx.hp||0) >= 0 && (fx.risk||0) <= 0 && drift.riskGain <= 4 );
+      feedback.className = `feedback ${goodish ? "good" : "bad"}`;
+      feedback.innerHTML = `Now: <b>HP ${this.hp}</b> · <b>Risk ${this.risk}</b> · <b>PPE ${this.ppe}</b> · <b>Pressure ${this.pressure}</b>`;
+
+      this.updateHUD();
+
+      // End checks
+      if(this.hp <= 0) return this.end(false, "Patient HP hit 0. The infection and shock overwhelmed the shift.");
+      if(this.risk >= 100) return this.end(false, "Outbreak Risk hit 100. The ward is shut down under outbreak response.");
+
+      this.waitingNext = true;
+      document.getElementById("nextBtn").style.display = "block";
+    }
+
+    nextHour(){
+      if(!this.waitingNext) return;
+      this.waitingNext = false;
+
+      this.hour++;
+
+      if(this.hour > this.maxHours){
+        // Win (clear)
+        return this.end(true, `Shift complete. You reached Hour 12 with HP ${this.hp} and Risk ${this.risk}.`);
+      }
+
+      this.loadScene();
+    }
+
+    end(win, message){
+      const overlay = document.getElementById("endOverlay");
+      const title = document.getElementById("endTitle");
+      const desc = document.getElementById("endDesc");
+
+      overlay.style.display = "flex";
+      title.textContent = win ? "SHIFT COMPLETE" : "CRITICAL FAILURE";
+      title.style.color = win ? "#86efac" : "#fca5a5";
+
+      desc.textContent = message;
+    }
+
+    render(){
+      // initial hud state
+      this.updateHUD();
+    }
+  }
+
+  const game = new Game();
+</script>
+</body>
+</html>
