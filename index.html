@@ -1,1210 +1,640 @@
-​<!doctype html>
-<html lang="en" class="h-full">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MRSA Clinical Training Module</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/_sdk/element_sdk.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
-  <style>
-    body {
-      box-sizing: border-box;
-    }
-    * {
-      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .health-bar-fill {
-      transition: width 0.5s ease-out, background-color 0.3s ease;
-    }
-    .scenario-card {
-      animation: fadeIn 0.3s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    .pulse-animation {
-      animation: pulse 2s infinite;
-    }
-    .decision-btn {
-      transition: all 0.2s ease;
-    }
-    .decision-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    .knowledge-item {
-      border-left: 3px solid #2563eb;
-    }
-    .patient-card {
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-    .patient-card:hover {
-      transform: translateX(4px);
-    }
-    .patient-card.active {
-      border-left: 4px solid #2563eb;
-      background-color: #eff6ff;
-    }
-    .toast {
-      animation: slideIn 0.3s ease-out;
-    }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    .modal-overlay {
-      animation: fadeInOverlay 0.2s ease-out;
-    }
-    @keyframes fadeInOverlay {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  </style>
-  <style>@view-transition { navigation: auto; }</style>
-  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
- </head>
- <body class="h-full bg-slate-100 text-slate-800 overflow-auto">
-  <div id="app" class="h-full w-full flex flex-col"><!-- Header -->
-   <header class="bg-gradient-to-r from-blue-800 to-blue-900 border-b border-blue-950 px-6 py-4 flex-shrink-0 shadow-lg">
-    <div class="flex items-center justify-between">
-     <div class="flex items-center gap-4">
-      <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-       <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-       </svg>
-      </div>
-      <div>
-       <h1 id="module-title" class="text-xl font-semibold text-white">MRSA Infection Control Training</h1>
-       <p class="text-sm text-blue-200">Multi-Patient Clinical Simulation</p>
-      </div>
-     </div>
-     <div class="flex items-center gap-4">
-      <div class="text-right">
-       <p class="text-xs text-blue-300 uppercase tracking-wide">Ward Safety</p>
-       <p id="ward-safety-header" class="text-lg font-semibold text-white">90%</p>
-      </div><button onclick="resetModule()" class="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"> Reset Module </button>
-     </div>
-    </div>
-   </header><!-- Main Content -->
-   <div class="flex-1 flex overflow-hidden"><!-- Left Panel: Patient List -->
-    <aside class="w-72 bg-white border-r border-slate-300 flex flex-col flex-shrink-0 overflow-hidden shadow-md">
-     <div class="p-4 border-b border-slate-300 bg-blue-50">
-      <h2 class="font-semibold text-blue-900 flex items-center gap-2">
-       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-       </svg> Ward 4B Patients</h2>
-     </div>
-     <div class="flex-1 overflow-y-auto p-3 space-y-2" id="patient-list"><!-- Patient cards will be injected here -->
-     </div>
-    </aside><!-- Center Panel: Main Scenario Area -->
-    <main class="flex-1 flex flex-col overflow-hidden"><!-- Patient Status Bar -->
-     <div class="bg-white border-b border-slate-300 p-4 flex-shrink-0 shadow-sm">
-      <div class="flex items-center justify-between mb-3">
-       <div class="flex items-center gap-4">
-        <div id="patient-avatar" class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center border-2 border-blue-300">
-         <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-         </svg>
-        </div>
-        <div>
-         <h3 id="patient-name-display" class="font-semibold text-slate-800 text-lg">Select a patient</h3>
-         <p id="patient-details" class="text-sm text-slate-500">Choose a patient from the left panel to begin</p>
-        </div>
-       </div>
-       <div class="flex items-center gap-6">
-        <div class="text-center">
-         <p class="text-xs text-slate-500 uppercase tracking-wide">Status</p>
-         <p id="patient-status-badge" class="text-sm font-semibold text-blue-600">—</p>
-        </div>
-        <div class="text-center">
-         <p class="text-xs text-slate-500 uppercase tracking-wide">Scenario</p>
-         <p id="scenario-progress" class="text-sm font-semibold text-slate-700">— / —</p>
-        </div>
-       </div>
-      </div><!-- Health Bar -->
-      <div>
-       <div class="flex justify-between items-center mb-1"><span class="text-xs font-medium text-slate-600">Patient Health Status</span> <span id="health-percent" class="text-xs font-semibold text-slate-700">—</span>
-       </div>
-       <div class="h-3 bg-slate-200 rounded-full overflow-hidden">
-        <div id="health-bar" class="health-bar-fill h-full bg-blue-500 rounded-full" style="width: 0%"></div>
-       </div>
-      </div>
-     </div><!-- Scenario Content -->
-     <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
-      <div id="scenario-container" class="scenario-card max-w-4xl mx-auto"><!-- Welcome screen -->
-       <div class="bg-white rounded-xl shadow-sm border border-slate-300 p-12 text-center">
-        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-         <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-         </svg>
-        </div>
-        <h2 class="text-2xl font-bold text-slate-800 mb-3">Welcome to MRSA Clinical Training</h2>
-        <p class="text-slate-600 mb-6 max-w-xl mx-auto">Select a patient from the left panel to begin their clinical scenario. You'll manage multiple patients, make critical infection control decisions, and prevent MRSA transmission across the ward.</p>
-        <div class="inline-block px-6 py-3 bg-blue-50 border border-blue-200 rounded-lg">
-         <p class="text-sm text-blue-800"><strong>5 Patients</strong> • <strong>Multiple Scenarios Each</strong> • <strong>Focus on Prevention</strong></p>
-        </div>
-       </div>
-      </div>
-     </div>
-    </main><!-- Right Panel: Clinical Knowledge Base -->
-    <aside class="w-80 bg-white border-l border-slate-300 flex flex-col flex-shrink-0 overflow-hidden shadow-md">
-     <div class="p-4 border-b border-slate-300 bg-blue-50">
-      <h2 class="font-semibold text-blue-900 flex items-center gap-2">
-       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-       </svg> Clinical Reference</h2>
-     </div>
-     <div class="flex-1 overflow-y-auto p-4 space-y-4"><!-- MRSA Overview -->
-      <div class="knowledge-item bg-blue-50 p-3 rounded-r-lg border-l-blue-500">
-       <h3 class="font-medium text-blue-900 text-sm mb-2">MRSA Overview</h3>
-       <p class="text-xs text-slate-700 leading-relaxed">Methicillin-resistant <strong>Staphylococcus aureus</strong>. Key to prevention: contact precautions, hand hygiene, environmental cleaning, and early detection.</p>
-      </div><!-- Transmission Prevention -->
-      <div class="knowledge-item bg-blue-50 p-3 rounded-r-lg border-l-blue-500">
-       <h3 class="font-medium text-blue-900 text-sm mb-2">Transmission Prevention</h3>
-       <ul class="text-xs text-slate-700 space-y-1">
-        <li>• <strong>Contact precautions:</strong> Gown + gloves mandatory</li>
-        <li>• <strong>Hand hygiene:</strong> Before/after ALL patient contact</li>
-        <li>• <strong>Dedicated equipment:</strong> Or disinfect between patients</li>
-        <li>• <strong>Environmental cleaning:</strong> High-touch surfaces daily</li>
-        <li>• <strong>Cohorting:</strong> Group MRSA+ patients when possible</li>
-       </ul>
-      </div><!-- Screening -->
-      <div class="knowledge-item bg-amber-50 p-3 rounded-r-lg border-l-amber-500">
-       <h3 class="font-medium text-amber-900 text-sm mb-2">⚠️ Active Surveillance</h3>
-       <ul class="text-xs text-amber-800 space-y-1">
-        <li>• Screen high-risk admissions (ICU, surgery, nursing home)</li>
-        <li>• Weekly screening for ICU patients</li>
-        <li>• Screen exposed patients within 48 hours</li>
-        <li>• Nasal swab is primary screening site</li>
-       </ul>
-      </div><!-- Environmental -->
-      <div class="knowledge-item bg-blue-50 p-3 rounded-r-lg border-l-blue-500">
-       <h3 class="font-medium text-blue-900 text-sm mb-2">Environmental Control</h3>
-       <ul class="text-xs text-slate-700 space-y-1">
-        <li>• MRSA survives weeks-months on surfaces</li>
-        <li>• High-touch surfaces = primary risk</li>
-        <li>• Terminal cleaning after discharge essential</li>
-        <li>• UV-C or H₂O₂ vapor for enhanced disinfection</li>
-       </ul>
-      </div><!-- Decolonization -->
-      <div class="knowledge-item bg-blue-50 p-3 rounded-r-lg border-l-blue-500">
-       <h3 class="font-medium text-blue-900 text-sm mb-2">Decolonization Protocol</h3>
-       <ul class="text-xs text-slate-700 space-y-1">
-        <li>• Mupirocin 2% nasal BID × 5 days</li>
-        <li>• Chlorhexidine 4% daily bath × 5 days</li>
-        <li>• 60-80% initial success rate</li>
-        <li>• Consider for high-risk procedures</li>
-       </ul>
-      </div><!-- Statistics -->
-      <div class="knowledge-item bg-red-50 p-3 rounded-r-lg border-l-red-500">
-       <h3 class="font-medium text-red-900 text-sm mb-2">📊 Impact Data</h3>
-       <ul class="text-xs text-red-700 space-y-1">
-        <li>• 25-30% colonization → infection conversion</li>
-        <li>• Hand hygiene compliance &lt;70% on most wards</li>
-        <li>• Each breach increases transmission 40%</li>
-        <li>• Bundled interventions reduce HAI by 50%+</li>
-       </ul>
-      </div>
-     </div>
-    </aside>
-   </div><!-- Toast Container -->
-   <div id="toast-container" class="fixed top-20 right-4 z-50 space-y-2"></div><!-- Feedback Modal -->
-   <div id="feedback-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden modal-overlay">
-    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
-     <div id="modal-header" class="p-4 border-b">
-      <h3 id="modal-title" class="text-lg font-semibold"></h3>
-     </div>
-     <div class="p-6">
-      <p id="modal-message" class="text-slate-600 leading-relaxed"></p>
-      <div id="modal-details" class="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-       <h4 class="font-medium text-slate-700 text-sm mb-2">Clinical Insight:</h4>
-       <p id="modal-insight" class="text-sm text-slate-600"></p>
-      </div>
-     </div>
-     <div class="p-4 border-t bg-slate-50 flex justify-between"><button id="undo-btn" onclick="undoDecision()" class="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-sm font-medium transition-colors"> ↩ Undo &amp; Try Again </button> <button onclick="closeModal()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"> Continue → </button>
-     </div>
-    </div>
-   </div><!-- Completion Modal -->
-   <div id="completion-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden modal-overlay">
-    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
-     <div class="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-center">
-      <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-       <svg class="w-10 h-10" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-       </svg>
-      </div>
-      <h3 class="text-2xl font-bold">Training Complete!</h3>
-     </div>
-     <div class="p-6">
-      <div class="grid grid-cols-2 gap-4 mb-6">
-       <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <p class="text-3xl font-bold text-blue-600" id="final-ward-safety">0%</p>
-        <p class="text-sm text-slate-600">Final Ward Safety</p>
-       </div>
-       <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <p class="text-3xl font-bold text-slate-700" id="optimal-decisions">0</p>
-        <p class="text-sm text-slate-600">Optimal Decisions</p>
-       </div>
-      </div>
-      <div id="completion-summary" class="text-sm text-slate-600"></div>
-     </div>
-     <div class="p-4 border-t bg-slate-50"><button onclick="resetModule()" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"> Restart Training Module </button>
-     </div>
-    </div>
-   </div>
-  </div>
-  <script>
-    // Default configuration
-    const defaultConfig = {
-      module_title: "MRSA Infection Control Training",
-      patient_name: "Multi-Patient System",
-      background_color: "#f8fafc",
-      primary_color: "#0d9488",
-      text_color: "#1e293b",
-      accent_color: "#dc2626",
-      surface_color: "#ffffff"
-    };
-
-    // Patient database with comprehensive scenarios
-    const patients = [
-      {
-        id: 1,
-        name: "Sarah Martinez",
-        age: 52,
-        room: "410",
-        admission: "Post-operative (Knee Replacement)",
-        baseHealth: 80,
-        mrsaStatus: "Unknown - High Risk",
-        riskLevel: "high",
-        scenarios: [
-          {
-            id: "sm1",
-            title: "Pre-Operative MRSA Screening",
-            situation: "Sarah Martinez is scheduled for knee replacement surgery tomorrow. Hospital protocol requires MRSA screening for all orthopedic surgery patients. She transferred from a nursing home where an MRSA outbreak occurred last month.",
-            labValues: "No current labs. Previous admission (6 months ago): Nasal swab negative for MRSA.",
-            question: "What is the appropriate screening approach?",
-            choices: [
-              {
-                text: "Skip screening - she was negative 6 months ago",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -15,
-                feedback: "Previous negative screening doesn't predict current status, especially with nursing home exposure. Undetected MRSA colonization leads to 50% higher surgical site infection rates.",
-                insight: "MRSA colonization status changes over time. Nursing home residents have 25-30% MRSA colonization rates. Pre-operative screening identifies candidates for decolonization, which reduces SSI by 50%."
-              },
-              {
-                text: "Perform nasal PCR screening now; if positive, delay surgery for 5-day decolonization protocol",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 10,
-                feedback: "Excellent! Evidence-based approach. Rapid PCR provides results in 2-4 hours. Pre-operative decolonization dramatically reduces surgical site infections in colonized patients.",
-                insight: "The 'search and destroy' strategy: screen → decolonize → operate. Studies show 5-day mupirocin + CHG protocol before surgery reduces MRSA SSI by 58%. Short delay is worth the infection prevention benefit."
-              },
-              {
-                text: "Screen but proceed with surgery regardless of results",
-                outcome: "suboptimal",
-                healthImpact: -5,
-                wardImpact: -5,
-                feedback: "Screening without acting on results wastes resources and misses prevention opportunity. If positive, proceeding without decolonization exposes her to higher infection risk.",
-                insight: "Screening is only valuable if results guide action. MRSA-colonized patients have 2-9× higher SSI rates than non-colonized patients in orthopedic surgery. The benefit is in targeted decolonization."
-              }
-            ]
-          },
-          {
-            id: "sm2",
-            title: "Positive MRSA Screen Management",
-            situation: "Sarah's nasal PCR returned positive for MRSA (mecA gene detected). Surgery has been postponed 5 days to allow decolonization. You're initiating the protocol.",
-            labValues: "Nasal PCR: MRSA positive (SCCmec Type IV). No active infection.",
-            question: "What constitutes the complete decolonization protocol?",
-            choices: [
-              {
-                text: "Mupirocin nasal ointment alone - that's the main colonization site",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -5,
-                feedback: "Nasal decolonization alone has 50-60% success. Adding chlorhexidine bathing increases success to 70-85% by addressing multiple colonization sites (axilla, groin, perineum).",
-                insight: "MRSA colonizes multiple body sites. Nasal mucosa is most common (40% of carriers) but axilla (30%) and groin (25%) also harbor bacteria. Combination therapy addresses all reservoirs."
-              },
-              {
-                text: "Mupirocin 2% nasal BID plus chlorhexidine 4% daily baths, both for 5 days; educate patient on proper application",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 5,
-                feedback: "Perfect protocol! Education is crucial - improper application is the most common cause of decolonization failure. Emphasize full 5-day course even if surgery is rescheduled.",
-                insight: "Standard decolonization regimen: Mupirocin both nares BID + CHG full body wash (avoid face) × 5 days. Patient adherence is critical. Studies show nurse-supervised application improves success rates by 20%."
-              },
-              {
-                text: "Oral antibiotics plus topical therapy for comprehensive treatment",
-                outcome: "poor",
-                healthImpact: -5,
-                wardImpact: 0,
-                feedback: "Systemic antibiotics are NOT indicated for decolonization. They don't achieve adequate mucosal concentrations, promote resistance, and have systemic side effects without improving outcomes.",
-                insight: "Topical mupirocin achieves nasal concentrations >1000 µg/g (MIC for MRSA is 0.25 µg/mL). Oral antibiotics achieve only 1-5 µg/mL systemically, nowhere near adequate mucosal levels. Topical is superior."
-              }
-            ]
-          },
-          {
-            id: "sm3",
-            title: "Post-Operative Wound Monitoring",
-            situation: "Post-op day 3. Sarah's knee incision shows mild erythema extending 2cm from the suture line. No purulence, but she reports increased pain (7/10) and the site feels warm. Temp 37.8°C.",
-            labValues: "WBC 10.5 × 10⁹/L (normal post-op elevation). CRP 45 mg/L. Blood glucose 152 mg/dL.",
-            question: "How do you assess this surgical site?",
-            choices: [
-              {
-                text: "Normal post-operative inflammation - continue observation",
-                outcome: "poor",
-                healthImpact: -15,
-                wardImpact: 0,
-                feedback: "Increased pain, warmth, and expanding erythema suggest early SSI, not normal inflammation. In MRSA-colonized patients, delays in recognition lead to deep infections requiring surgical debridement.",
-                insight: "SSI warning signs: increasing pain (most sensitive early indicator), warmth, erythema >2cm from incision, fever. In MRSA+ patients, threshold for intervention should be lower due to virulence."
-              },
-              {
-                text: "Obtain wound culture and photograph site; notify surgeon; prepare for possible empiric antibiotics with MRSA coverage",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 0,
-                feedback: "Excellent early intervention! Photography documents baseline. Culture before antibiotics. Given her MRSA colonization history, empiric coverage is appropriate pending culture results.",
-                insight: "Early SSI detection is critical in orthopedic surgery - delays allow biofilm formation on hardware. Serial photography provides objective progression tracking. Pre-antibiotic cultures guide definitive therapy."
-              },
-              {
-                text: "Apply warm compresses and give acetaminophen for inflammation",
-                outcome: "suboptimal",
-                healthImpact: -10,
-                wardImpact: 0,
-                feedback: "Symptomatic treatment alone delays appropriate intervention. While supportive care helps, potential SSI in MRSA-colonized patient requires surgical evaluation and possible antimicrobial therapy.",
-                insight: "In post-operative patients with MRSA colonization history, clinical suspicion threshold should be low. Up to 30% of colonized surgical patients develop SSI despite decolonization. Early aggressive management prevents deep infection."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 2,
-        name: "Michael O'Brien",
-        age: 71,
-        room: "412",
-        admission: "CHF Exacerbation (ICU → Ward Transfer)",
-        baseHealth: 65,
-        mrsaStatus: "MRSA Positive (Nasal)",
-        riskLevel: "moderate",
-        scenarios: [
-          {
-            id: "mo1",
-            title: "ICU Transfer with MRSA",
-            situation: "Michael is being transferred from ICU to your ward after 8 days of treatment for CHF exacerbation. ICU notes indicate he was screened and found MRSA-positive (nasal swab) on day 3. No active MRSA infection, just colonization.",
-            labValues: "ICU screening: Nasal MRSA positive. No wound or blood culture growth. Current: WBC 7.2 × 10⁹/L, BNP trending down.",
-            question: "What infection control measures are needed for his ward room?",
-            choices: [
-              {
-                text: "Standard precautions only - he has no active infection",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -20,
-                feedback: "CRITICAL ERROR. Colonization requires same precautions as infection. Colonized patients shed MRSA and can transmit to others. 25% of colonized patients develop infection within a year.",
-                insight: "Contact precautions are based on transmission risk, not infection presence. Colonized patients contaminate their environment at similar rates to infected patients. CDC guidelines mandate precautions for both."
-              },
-              {
-                text: "Contact precautions: single room, door signage, gown/glove for entry, dedicated equipment, daily CHG bathing",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Comprehensive prevention bundle! Single room prevents roommate exposure. Daily CHG bathing reduces surface bacterial load by 90%. Dedicated equipment prevents cross-contamination.",
-                insight: "Bundled interventions work synergistically: Contact precautions (70% reduction) + single room (40% reduction) + CHG bathing (50% reduction) = 85-90% transmission prevention. Each component matters."
-              },
-              {
-                text: "Place in semi-private room but require gloves for patient contact",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Partial precautions increase transmission risk. Roommate exposure is a major MRSA acquisition route. Gloves alone don't prevent clothing contamination. Gowns are essential.",
-                insight: "Studies show roommate exposure accounts for 30% of hospital MRSA acquisition. Semi-private rooms with MRSA patients double transmission risk to roommates. Single-room isolation is cost-effective."
-              }
-            ]
-          },
-          {
-            id: "mo2",
-            title: "Equipment Sharing Breach",
-            situation: "You observe a respiratory therapist using a shared pulse oximeter on Michael, then moving directly to the next room without cleaning it. The RT is wearing gloves but no gown.",
-            labValues: "N/A - Infection control breach scenario",
-            question: "What is your immediate response?",
-            choices: [
-              {
-                text: "Ignore it - the RT was wearing gloves and probably knows what they're doing",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -15,
-                feedback: "Passive observation of protocol violations perpetuates unsafe practices. Environmental contamination from shared equipment is a major MRSA transmission route. All staff are responsible for safety.",
-                insight: "Shared medical equipment causes 15-20% of HAI transmission events. Culture of safety requires all team members to speak up when witnessing breaches, regardless of hierarchy or profession."
-              },
-              {
-                text: "Politely intervene: remind about contact precautions, ensure equipment is disinfected before next use, offer to help clean it",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Professional peer accountability! Non-confrontational approach maintains team relationships while correcting unsafe practice. Offering help demonstrates teamwork and shared responsibility.",
-                insight: "Effective intervention uses 'CUS' words: Concerned, Uncomfortable, Safety issue. Frame as patient safety, not personal criticism. Studies show teams with high speak-up culture have 40% fewer HAIs."
-              },
-              {
-                text: "File an incident report after the fact",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -5,
-                feedback: "Incident reports are important for tracking, but immediate intervention prevents transmission to the next patient. Real-time correction is more effective than after-the-fact documentation.",
-                insight: "Just culture principles: immediate feedback + incident reporting. Real-time intervention prevents harm. Incident reports identify system issues and training needs but don't stop active transmission events."
-              }
-            ]
-          },
-          {
-            id: "mo3",
-            title: "Visitor Education Challenge",
-            situation: "Michael's adult children visit daily. You notice they often bypass the hand sanitizer, sometimes don't wear gowns, and bring outside food that they share with him. They seem annoyed by the 'excessive' precautions.",
-            labValues: "N/A - Family education scenario",
-            question: "How do you address this family education need?",
-            choices: [
-              {
-                text: "Let them be - family needs to feel comfortable, and they're not healthcare workers",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Family members can acquire and transmit MRSA to vulnerable household members and other patients. Lax precautions undermine infection control and model poor behavior for other families.",
-                insight: "Visitors account for 10-15% of MRSA transmission events. Family members often care for elderly or immunocompromised relatives at home. Proper education protects entire households."
-              },
-              {
-                text: "Educate compassionately: explain WHY precautions matter, how they protect both patient and family, demonstrate proper PPE use, make it easy to comply",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Excellent patient-centered education! Explaining rationale improves compliance. Demonstrating technique addresses skills gaps. Making it easy (hand sanitizer visible, gowns readily available) removes barriers.",
-                insight: "Health literacy approach: 'What, Why, How.' What is MRSA, Why precautions matter (protect dad AND you), How to do it correctly. Teach-back method confirms understanding. Compliance rates jump from 40% to 85% with good education."
-              },
-              {
-                text: "Post strict signs and threaten to restrict visiting if they don't comply",
-                outcome: "suboptimal",
-                healthImpact: -5,
-                wardImpact: 0,
-                feedback: "Punitive approach damages therapeutic relationships and may reduce beneficial family involvement. Education and partnership work better than enforcement for visitor compliance.",
-                insight: "Family presence improves patient outcomes - shorter stays, less delirium, better satisfaction. Goal is safe visiting, not visitor restriction. Collaborative approach achieves 80% compliance vs 50% for punitive."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 3,
-        name: "Jennifer Zhao",
-        age: 34,
-        room: "414",
-        admission: "Postpartum (C-Section Day 2)",
-        baseHealth: 90,
-        mrsaStatus: "Negative Screening",
-        riskLevel: "low",
-        scenarios: [
-          {
-            id: "jz1",
-            title: "Potential Cross-Contamination Event",
-            situation: "The nursing assistant reports she just realized she entered Jennifer's room immediately after helping Michael O'Brien (MRSA+) without changing gloves or washing hands. She didn't touch Jennifer directly but did touch the IV pole and bedside table.",
-            labValues: "Jennifer: No signs of infection. WBC 11.8 × 10⁹/L (normal postpartum). C-section incision clean and dry.",
-            question: "What is the appropriate infection control response?",
-            choices: [
-              {
-                text: "Jennifer wasn't touched directly, so no action needed beyond reminding staff about hand hygiene",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Environmental contamination poses transmission risk even without direct contact. High-touch surfaces (IV pole, table) are vectors for indirect transmission. Active intervention is warranted.",
-                insight: "MRSA survives 7+ weeks on dry surfaces. Healthcare workers' hands pick up MRSA from surfaces in 40% of contacts. 'No touch' transmission via contaminated surfaces accounts for 20% of acquisitions."
-              },
-              {
-                text: "Immediately disinfect all potentially contaminated surfaces; screen Jennifer for MRSA acquisition (nasal swab); document exposure incident",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Comprehensive response! Immediate decontamination limits exposure window. Baseline screening establishes whether acquisition occurred. Documentation enables tracking and system improvement.",
-                insight: "Post-exposure protocol: disinfect immediately (MRSA dies in 30 seconds with proper disinfectant) → screen at 48-72 hours (detection window) → repeat at 1 week if high risk. Catches early colonization."
-              },
-              {
-                text: "Move Jennifer to a different room as precaution",
-                outcome: "suboptimal",
-                healthImpact: -5,
-                wardImpact: -5,
-                feedback: "Room transfer disrupts care, increases patient stress (especially postpartum), and doesn't address contamination already present. Surface disinfection is more effective and less disruptive.",
-                insight: "Room transfer is rarely indicated for exposure events. It's stressful, expensive ($500-1000), and creates new infection risks during move. Reserve for confirmed colonization/infection requiring isolation."
-              }
-            ]
-          },
-          {
-            id: "jz2",
-            title: "Early Discharge Readiness",
-            situation: "Jennifer is ready for discharge on postpartum day 2 (standard for uncomplicated C-section). The exposure incident was 36 hours ago. Her screening swab is still pending (no results yet).",
-            labValues: "Screening: Nasal swab pending. Incision: Clean, no erythema. Lochia normal. Vitals stable.",
-            question: "How does the exposure incident affect discharge planning?",
-            choices: [
-              {
-                text: "Delay discharge until screening results are available",
-                outcome: "suboptimal",
-                healthImpact: -5,
-                wardImpact: 0,
-                feedback: "Unnecessary delay for low-probability exposure in healthy patient. Prolonged hospitalization increases her MRSA acquisition risk. Risk-benefit favors discharge with outpatient follow-up plan.",
-                insight: "Single brief exposure in immunocompetent patient = 2-5% colonization risk. Compare to continued hospitalization = 3-5% acquisition risk per day. Discharge with surveillance plan is safer."
-              },
-              {
-                text: "Discharge with normal postpartum instructions; provide phone number to call if swab positive with symptoms",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -5,
-                feedback: "Incomplete follow-up plan. She should be notified of results regardless of symptoms (colonization is asymptomatic). Need education about SSI signs given surgical site.",
-                insight: "Post-discharge surveillance is critical - 50% of SSIs present after discharge. Patients need education on SSI warning signs and clear communication plan for screening results, positive or negative."
-              },
-              {
-                text: "Discharge with normal postpartum care; add SSI warning signs education; arrange callback with screening results and instructions if positive",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 5,
-                feedback: "Balanced approach! Appropriate discharge timing, comprehensive SSI education, clear follow-up plan. If positive, she'll need decolonization instructions and heightened SSI awareness.",
-                insight: "Post-discharge infection prevention: patient education (70% of SSI detection) + systematic follow-up calls (catches 25% more) + clear callback access = 85% SSI capture rate. Don't delay discharge, optimize follow-up."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 4,
-        name: "Patricia Williams",
-        age: 58,
-        room: "416",
-        admission: "Type 2 Diabetes (Foot Ulcer Management)",
-        baseHealth: 70,
-        mrsaStatus: "MRSA Wound Infection",
-        riskLevel: "high",
-        scenarios: [
-          {
-            id: "pw1",
-            title: "Wound Care Protocol Violation",
-            situation: "You observe a new graduate nurse performing Patricia's diabetic foot ulcer dressing change. She's wearing gloves but no gown, the door is open, and she places the used dressing on the bedside table before disposing of it. Wound has confirmed MRSA growth.",
-            labValues: "Wound culture: MRSA (heavy growth). Current antibiotics: Vancomycin day 5.",
-            question: "What aspects of this wound care need correction?",
-            choices: [
-              {
-                text: "It's mostly okay - she's wearing gloves which is the main thing",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -20,
-                feedback: "Multiple breaches create high transmission risk. Open door allows MRSA dispersal to corridor. No gown risks clothing contamination. Used dressing on table contaminates high-touch surface.",
-                insight: "Wound care protocol breaches are highest-risk events for MRSA transmission. Each violation compounds risk: no gown (40% contamination) + open door (30% dispersal) + table contamination (50% transmission) = nearly certain spread."
-              },
-              {
-                text: "Intervene respectfully: pause procedure, review correct technique (door closed, gown required, immediate dressing containment), reperform together",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 15,
-                feedback: "Excellent teaching moment! Stopping unsafe practice prevents transmission. Collaborative reteaching (not punitive) promotes learning. Immediate correction establishes proper mental model for future.",
-                insight: "Just culture: address unsafe acts immediately with coaching, not blame. New graduates need procedural guidance. Real-time correction creates 80% retention vs. 20% for after-the-fact feedback. Psychological safety promotes learning."
-              },
-              {
-                text: "Let her finish, then discuss the errors privately to avoid embarrassment",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Allowing continued unsafe practice permits transmission during the procedure. Environmental contamination has already occurred. Patient safety supersedes avoiding momentary discomfort.",
-                insight: "Speaking up immediately prevents harm. Respectful interruption ('Let me help you with this...') maintains dignity better than completing unsafe procedure then providing criticism. Immediate correction shows priority on safety."
-              }
-            ]
-          },
-          {
-            id: "pw2",
-            title: "Wound VAC Therapy Consideration",
-            situation: "Patricia's foot ulcer is large (4×5cm) and deep. Wound care team recommends negative pressure wound therapy (wound VAC). The wound VAC company requires a technician to come set up the device and train the nursing staff.",
-            labValues: "Wound: 4×5cm×2cm deep. MRSA positive. Granulation tissue 40%. No bone involvement on X-ray.",
-            question: "What infection control considerations apply to wound VAC setup for MRSA wound?",
-            choices: [
-              {
-                text: "Standard setup - the wound VAC system is sealed so MRSA is contained",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Setup process involves wound manipulation and cutting foam, creating aerosolization risk. While device is sealed during operation, setup requires contact precautions and proper waste handling.",
-                insight: "Wound VAC setup generates aerosols and contaminated waste. Technician must follow contact precautions. All cutting/sizing done in patient room with door closed. Contaminated materials in biohazard waste."
-              },
-              {
-                text: "Brief technician on contact precautions; provide PPE; supervise to ensure door remains closed; properly dispose of all contaminated materials",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Comprehensive approach! External personnel need same precautions as staff. Supervision ensures compliance. Proper waste disposal prevents environmental contamination from setup materials.",
-                insight: "Vendor personnel protocols: pre-brief on room status → provide PPE → supervise first time → verify waste handling. Vendors report only 30% of facilities brief them on isolation status. Your vigilance protects the ward."
-              },
-              {
-                text: "Have the technician set up device in clean utility room, then install on patient to minimize contamination",
-                outcome: "poor",
-                healthImpact: -5,
-                wardImpact: -15,
-                feedback: "CRITICAL ERROR. This contaminates the clean utility room! All wound manipulation and device preparation must occur in the patient's isolation room. Never bring contaminated wounds to clean areas.",
-                insight: "Clean utility rooms must remain pristine - used for sterile supplies, medication preparation. Contaminating this space could affect multiple patients. Wound care always done in patient room, regardless of convenience."
-              }
-            ]
-          },
-          {
-            id: "pw3",
-            title: "Discharge to Skilled Nursing Facility",
-            situation: "Patricia's wound is improving with wound VAC. She needs 4 more weeks of IV vancomycin and ongoing wound care. Discharge planning is arranging SNF transfer. The SNF asks detailed questions about her MRSA status and care requirements.",
-            labValues: "Latest wound culture: Still MRSA positive (decreased bacterial load). Vancomycin trough: 16.2 mg/L (therapeutic).",
-            question: "What information must be communicated to the receiving SNF?",
-            choices: [
-              {
-                text: "Just mention she needs IV antibiotics and wound care - they'll assess when she arrives",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -20,
-                feedback: "CRITICAL COMMUNICATION FAILURE. SNF needs advance warning to prepare isolation room, train staff on wound VAC, ensure formulary includes vancomycin. Inadequate handoff creates care gaps and transmission risk.",
-                insight: "Poor care transitions cause 20% of adverse events post-discharge. SNFs need 24-48 hour notice for MRSA admissions to prepare appropriate room, supplies, and staffing. Surprise MRSA admissions increase SNF outbreak risk 3×."
-              },
-              {
-                text: "Complete transfer documentation: MRSA wound infection status, isolation requirements, wound VAC training needs, antibiotic protocol, follow-up culture schedule",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 10,
-                feedback: "Comprehensive handoff! Detailed communication enables continuity of care and infection prevention. SNF can prepare room, obtain supplies, arrange wound nurse involvement, and protect other residents.",
-                insight: "Effective SNF communication includes: diagnosis, current cultures, antibiotics/duration, isolation requirements, equipment/training needs, follow-up plan. SBAR format + checklist ensures completeness. Reduces readmissions by 30%."
-              },
-              {
-                text: "Provide basic information but downplay MRSA severity so they don't refuse admission",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -15,
-                feedback: "Deceptive communication is unethical and illegal. If outbreak occurs at SNF due to inadequate precautions from misinformation, your facility bears liability. SNFs cannot legally refuse appropriate MRSA patients.",
-                insight: "Federal regulations prohibit SNF discrimination based on infection status if they can safely provide care. Honest communication allows proper preparation. Deception erodes inter-facility trust and jeopardizes patient safety network."
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 5,
-        name: "David Kim",
-        age: 43,
-        room: "418",
-        admission: "Immunosuppressed (Kidney Transplant - Post-Rejection Treatment)",
-        baseHealth: 60,
-        mrsaStatus: "Negative - High Vulnerability",
-        riskLevel: "high",
-        scenarios: [
-          {
-            id: "dk1",
-            title: "High-Risk Patient Protection",
-            situation: "David received high-dose immunosuppression for transplant rejection. His absolute neutrophil count is 800/µL. He's in a regular ward room two doors down from Patricia Williams (MRSA wound infection) and Michael O'Brien (MRSA colonized).",
-            labValues: "ANC: 800/µL (neutropenic). Creatinine: 2.1 mg/dL (elevated but stable post-rejection). WBC: 2.1 × 10⁹/L.",
-            question: "What additional precautions should be considered for David?",
-            choices: [
-              {
-                text: "Standard care - contact precautions on MRSA patients should be sufficient",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -10,
-                feedback: "Neutropenic patients warrant enhanced protection. Geographic separation from MRSA patients reduces risk. Active surveillance screening can detect colonization before it progresses to invasive infection.",
-                insight: "Neutropenic patients have 5× higher MRSA infection risk and 10× higher mortality from bacteremia. Cohorting immunosuppressed patients separately from MRSA+ patients reduces acquisition by 60%."
-              },
-              {
-                text: "Move David to different ward section away from MRSA patients; perform MRSA surveillance screening every 3 days; ensure staff sees him before MRSA patients",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 5,
-                feedback: "Excellent protective strategy! Geographic separation, surveillance for early detection, and care sequencing (clean to dirty) create layered protection for high-risk patient.",
-                insight: "Protection bundle for immunocompromised: geographic cohorting + surveillance screening (weekly or every 3 days) + staff assignment (MRSA- patients first) + enhanced environmental cleaning = 70-80% acquisition reduction."
-              },
-              {
-                text: "Require all staff to double-glove when caring for David",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: 0,
-                feedback: "Double-gloving doesn't prevent transmission to David - it protects from exposure to him. The risk is bringing MRSA TO him from contaminated hands/environment. Hand hygiene and source patient isolation are key.",
-                insight: "Protective isolation for neutropenia focuses on what comes IN: strict hand hygiene before entry, dedicated equipment, minimizing traffic. Double-gloving has no evidence benefit. Focus protection on hand hygiene and source control."
-              }
-            ]
-          },
-          {
-            id: "dk2",
-            title: "Unexpected Fever in Immunosuppressed Patient",
-            situation: "Day 3 of hospitalization. David develops fever (38.6°C) with mild cough. No other symptoms. He had brief contact with a visitor who mentioned having a cold. His neutropenia is unchanged (ANC 750/µL).",
-            labValues: "Temp: 38.6°C. ANC: 750/µL. CRP: 35 mg/L. Chest X-ray: No infiltrates. MRSA screening (today): Pending.",
-            question: "What is the appropriate infectious workup given the ward context (multiple MRSA patients present)?",
-            choices: [
-              {
-                text: "Viral respiratory panel for suspected cold from visitor",
-                outcome: "suboptimal",
-                healthImpact: -5,
-                wardImpact: 0,
-                feedback: "While viral testing is appropriate, neutropenic fever requires comprehensive bacterial workup regardless of viral symptoms. Missing early MRSA bacteremia in immunosuppressed patient can be fatal.",
-                insight: "Neutropenic fever = medical emergency. Workup includes blood cultures (×2 sets), urine culture, respiratory cultures. Viral and bacterial infections coexist in 15-25% of cases. Never assume viral alone in neutropenic patients."
-              },
-              {
-                text: "Blood cultures, respiratory cultures (including MRSA), urine culture; empiric broad-spectrum antibiotics with MRSA coverage given ward exposure",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 0,
-                feedback: "Comprehensive approach! Neutropenic fever requires aggressive workup and rapid empiric therapy. Ward MRSA prevalence justifies empiric coverage. Every hour delay increases mortality 5-10%.",
-                insight: "Neutropenic fever guidelines: cultures within 30 min → empiric antibiotics within 60 min. Ward with endemic MRSA warrants vancomycin addition to standard neutropenic regimen (e.g., cefepime + vancomycin). Mortality drops from 20% to 5% with early appropriate therapy."
-              },
-              {
-                text: "Wait for fever trend and MRSA screening results before starting antibiotics to avoid unnecessary treatment",
-                outcome: "poor",
-                healthImpact: -20,
-                wardImpact: 0,
-                feedback: "LIFE-THREATENING DELAY. Neutropenic patients lack immune reserve. Waiting for trends or results allows overwhelming sepsis. This violates standard neutropenic fever protocols and dramatically increases mortality.",
-                insight: "Neutropenic sepsis can progress from fever to septic shock in 6-12 hours. Mortality without antibiotics: 50-70%. With antibiotics <60 minutes: 5-10%. This is one situation where empiric therapy is absolutely mandatory - never wait."
-              }
-            ]
-          },
-          {
-            id: "dk3",
-            title: "MRSA Screening Results and Prevention",
-            situation: "David's MRSA surveillance screening returns positive (nasal swab). He has no symptoms or signs of infection - this appears to be new colonization acquired during hospitalization. His fever resolved (viral URI confirmed). ANC improving to 1200/µL.",
-            labValues: "MRSA nasal swab: Positive (new acquisition). Blood cultures: No growth. ANC: 1200/µL (improving). No signs of active infection.",
-            question: "How should his newly acquired MRSA colonization be managed?",
-            choices: [
-              {
-                text: "No treatment needed - colonization isn't infection, and he's immunosuppressed so decolonization may not work anyway",
-                outcome: "poor",
-                healthImpact: -10,
-                wardImpact: 0,
-                feedback: "MRSA colonization in immunosuppressed patients predicts infection risk 40-50% (vs 25% in immunocompetent). Decolonization may have lower success but still reduces infection risk and prevents transmission.",
-                insight: "Immunosuppressed patients benefit most from decolonization despite lower success rates (50% vs 70% in immunocompetent). Even temporary decolonization during high-risk period reduces infection risk 40%."
-              },
-              {
-                text: "Initiate decolonization protocol; continue contact precautions; perform repeat screening to assess success; heighten surveillance for any infection signs",
-                outcome: "optimal",
-                healthImpact: 5,
-                wardImpact: 5,
-                feedback: "Comprehensive management! Decolonization attempt is warranted. Continued precautions prevent spread to others. Repeat screening confirms (or not) success. Enhanced surveillance catches progression to infection early.",
-                insight: "Post-acquisition protocol: attempt decolonization → repeat screen at 48 hours after completion → if still positive, counsel on infection risk signs → continue precautions. Transplant patients with MRSA have 7× higher rejection risk (chronic inflammation)."
-              },
-              {
-                text: "Start prophylactic antibiotics to prevent infection",
-                outcome: "poor",
-                healthImpact: -10,
-                wardImpact: 0,
-                feedback: "Prophylactic systemic antibiotics for colonization promote resistance, have side effects, and aren't indicated. Topical decolonization (mupirocin + CHG) is safer and more effective.",
-                insight: "Systemic antibiotic prophylaxis for MRSA colonization: not evidence-based, promotes resistance, increases C. diff risk, and no better than topical decolonization. Reserve systemic antibiotics for documented infection."
-              }
-            ]
-          },
-          {
-            id: "dk4",
-            title: "Infection Prevention Review",
-            situation: "The infection control team is investigating David's MRSA acquisition. They're conducting a root cause analysis to understand how a high-risk patient became colonized despite isolation precautions on source patients.",
-            labValues: "Timeline review: David admitted Day 1. Surveillance screens: Day 1 negative, Day 4 positive (3-day colonization window).",
-            question: "What are the most likely breakdown points that allowed transmission?",
-            choices: [
-              {
-                text: "David probably was already colonized on admission and Day 1 screen was false negative",
-                outcome: "suboptimal",
-                healthImpact: 0,
-                wardImpact: -5,
-                feedback: "While false negatives occur (5-10%), assuming test failure without investigating process prevents system improvement. Root cause analysis should examine care processes before attributing to test limitations.",
-                insight: "RCA principle: look at processes before blaming tools. PCR sensitivity is 90-95%. With 3-day window between screens on a ward with MRSA patients, nosocomial acquisition is more likely than false negative."
-              },
-              {
-                text: "Review hand hygiene compliance data, equipment sharing practices, staff assignments, environmental cleaning audits, and PPE adherence during the 3-day window",
-                outcome: "optimal",
-                healthImpact: 0,
-                wardImpact: 10,
-                feedback: "Systematic root cause analysis! Each element represents potential transmission route. Data-driven review identifies specific breakdowns requiring intervention.",
-                insight: "Common RCA findings for immunosuppressed patient acquisition: hand hygiene compliance 65% (target >90%), shared equipment not disinfected 30% of time, staff saw MRSA+ then David without hand hygiene 40% of shifts. Each finding drives targeted intervention."
-              },
-              {
-                text: "Blame the staff member who had contact precaution violation two days ago",
-                outcome: "poor",
-                healthImpact: 0,
-                wardImpact: -15,
-                feedback: "Individual blame contradicts Just Culture and modern safety principles. HAIs result from system failures, not single person errors. Blame-based investigations prevent honest reporting and system improvement.",
-                insight: "Just Culture: honest errors deserve coaching, not blame. Reckless behavior deserves consequences. Most HAI transmission involves multiple small failures in system design. Individual blame prevents learning, reduces safety reporting 70%."
-              }
-            ]
-          }
-        ]
-      }
-    ];
-
-    // Game state
-    let gameState = {
-      currentPatientId: null,
-      currentScenarioIndex: 0,
-      wardSafety: 90,
-      patientStates: {},
-      decisions: [],
-      lastDecision: null
-    };
-
-    // Initialize patient states
-    patients.forEach(p => {
-      gameState.patientStates[p.id] = {
-        health: p.baseHealth,
-        scenarioIndex: 0,
-        completed: false
-      };
-    });
-
-    // Initialize SDK
-    async function initializeApp() {
-      if (window.elementSdk) {
-        await window.elementSdk.init({
-          defaultConfig,
-          onConfigChange: async (config) => {
-            document.getElementById('module-title').textContent = config.module_title || defaultConfig.module_title;
-          },
-          mapToCapabilities: (config) => ({
-            recolorables: [
-              {
-                get: () => config.background_color || defaultConfig.background_color,
-                set: (value) => window.elementSdk.setConfig({ background_color: value })
-              },
-              {
-                get: () => config.surface_color || defaultConfig.surface_color,
-                set: (value) => window.elementSdk.setConfig({ surface_color: value })
-              },
-              {
-                get: () => config.text_color || defaultConfig.text_color,
-                set: (value) => window.elementSdk.setConfig({ text_color: value })
-              },
-              {
-                get: () => config.primary_color || defaultConfig.primary_color,
-                set: (value) => window.elementSdk.setConfig({ primary_color: value })
-              },
-              {
-                get: () => config.accent_color || defaultConfig.accent_color,
-                set: (value) => window.elementSdk.setConfig({ accent_color: value })
-              }
-            ],
-            borderables: [],
-            fontEditable: undefined,
-            fontSizeable: undefined
-          }),
-          mapToEditPanelValues: (config) => new Map([
-            ["module_title", config.module_title || defaultConfig.module_title],
-            ["patient_name", config.patient_name || defaultConfig.patient_name]
-          ])
-        });
-      }
-      
-      renderPatientList();
-    }
-
-    function renderPatientList() {
-      const container = document.getElementById('patient-list');
-      container.innerHTML = patients.map(patient => {
-        const state = gameState.patientStates[patient.id];
-        const totalScenarios = patient.scenarios.length;
-        const completed = state.scenarioIndex >= totalScenarios;
-        
-        const riskColors = {
-          low: 'border-emerald-300 bg-emerald-50',
-          moderate: 'border-amber-300 bg-amber-50',
-          high: 'border-red-300 bg-red-50'
-        };
-        
-        const isActive = gameState.currentPatientId === patient.id;
-        
-        return `
-          <div onclick="selectPatient(${patient.id})" 
-               class="patient-card p-3 rounded-lg border-2 ${riskColors[patient.riskLevel]} ${isActive ? 'active' : ''} mb-2">
-            <div class="flex items-start justify-between mb-2">
-              <div>
-                <h3 class="font-semibold text-slate-800 text-sm">${patient.name}</h3>
-                <p class="text-xs text-slate-600">Age ${patient.age} • Room ${patient.room}</p>
-              </div>
-              ${completed ? '<span class="text-emerald-600 text-lg">✓</span>' : ''}
-            </div>
-            <p class="text-xs text-slate-600 mb-2">${patient.admission}</p>
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium ${patient.riskLevel === 'high' ? 'text-red-700' : patient.riskLevel === 'moderate' ? 'text-amber-700' : 'text-emerald-700'}">${patient.mrsaStatus}</span>
-              <span class="text-xs text-slate-500">${state.scenarioIndex}/${totalScenarios}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectPatient(patientId) {
-      gameState.currentPatientId = patientId;
-      gameState.currentScenarioIndex = gameState.patientStates[patientId].scenarioIndex;
-      renderPatientList();
-      renderScenario();
-    }
-
-    function renderScenario() {
-      const patient = patients.find(p => p.id === gameState.currentPatientId);
-      if (!patient) return;
-      
-      const state = gameState.patientStates[patient.id];
-      const container = document.getElementById('scenario-container');
-      
-      // Update patient header
-      document.getElementById('patient-name-display').textContent = patient.name;
-      document.getElementById('patient-details').textContent = `Age ${patient.age} • Room ${patient.room} • ${patient.admission}`;
-      document.getElementById('patient-status-badge').textContent = patient.mrsaStatus;
-      document.getElementById('health-percent').textContent = `${state.health}%`;
-      document.getElementById('health-bar').style.width = `${state.health}%`;
-      document.getElementById('scenario-progress').textContent = `${state.scenarioIndex + 1} / ${patient.scenarios.length}`;
-      document.getElementById('ward-safety-header').textContent = `${gameState.wardSafety}%`;
-      
-      // Color health bar
-      const healthBar = document.getElementById('health-bar');
-      if (state.health > 70) {
-        healthBar.className = 'health-bar-fill h-full bg-blue-500 rounded-full';
-      } else if (state.health > 40) {
-        healthBar.className = 'health-bar-fill h-full bg-amber-500 rounded-full';
-      } else {
-        healthBar.className = 'health-bar-fill h-full bg-red-500 rounded-full';
-      }
-      
-      if (state.scenarioIndex >= patient.scenarios.length) {
-        container.innerHTML = `
-          <div class="bg-white rounded-xl shadow-sm border border-slate-300 p-12 text-center">
-            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Patient Scenarios Complete</h2>
-            <p class="text-slate-600 mb-4">You've completed all scenarios for ${patient.name}.</p>
-            <p class="text-sm text-slate-500">Select another patient to continue training, or complete all patients to finish the module.</p>
-          </div>
-        `;
-        checkModuleCompletion();
-        return;
-      }
-      
-      const scenario = patient.scenarios[state.scenarioIndex];
-      
-      container.innerHTML = `
-        <div class="bg-white rounded-xl shadow-md border-2 border-slate-300 overflow-hidden">
-          <div class="bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-4">
-            <div class="flex items-center gap-2 text-blue-200 text-sm mb-1">
-              <span>${patient.name} • Scenario ${state.scenarioIndex + 1} of ${patient.scenarios.length}</span>
-            </div>
-            <h2 class="text-xl font-semibold text-white">${scenario.title}</h2>
-          </div>
-          
-          <div class="p-6 border-b border-slate-200">
-            <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Clinical Situation</h3>
-            <p class="text-slate-700 leading-relaxed">${scenario.situation}</p>
-          </div>
-          
-          <div class="px-6 py-4 bg-blue-50 border-b border-blue-100">
-            <h3 class="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2">📋 Clinical Data</h3>
-            <p class="text-sm text-slate-700 font-mono bg-white p-3 rounded border border-blue-200">${scenario.labValues}</p>
-          </div>
-          
-          <div class="p-6 border-b border-slate-200 bg-slate-50">
-            <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Clinical Question</h3>
-            <p class="text-slate-800 font-medium text-lg">${scenario.question}</p>
-          </div>
-          
-          <div class="p-6 space-y-3">
-            ${scenario.choices.map((choice, index) => `
-              <button 
-                onclick="makeDecision(${index})"
-                class="decision-btn w-full text-left p-4 rounded-lg border-2 border-slate-300 hover:border-blue-500 hover:bg-blue-50 transition-all"
-              >
-                <div class="flex items-start gap-3">
-                  <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-sm font-semibold text-blue-700">
-                    ${String.fromCharCode(65 + index)}
-                  </span>
-                  <span class="text-slate-700">${choice.text}</span>
-                </div>
-              </button>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    function makeDecision(choiceIndex) {
-      const patient = patients.find(p => p.id === gameState.currentPatientId);
-      const state = gameState.patientStates[patient.id];
-      const scenario = patient.scenarios[state.scenarioIndex];
-      const choice = scenario.choices[choiceIndex];
-      
-      gameState.lastDecision = {
-        patientId: patient.id,
-        scenarioIndex: state.scenarioIndex,
-        choiceIndex,
-        previousHealth: state.health,
-        previousWard: gameState.wardSafety
-      };
-      
-      state.health = Math.max(0, Math.min(100, state.health + choice.healthImpact));
-      gameState.wardSafety = Math.max(0, Math.min(100, gameState.wardSafety + choice.wardImpact));
-      
-      gameState.decisions.push({
-        patient: patient.name,
-        scenario: scenario.title,
-        outcome: choice.outcome
-      });
-      
-      showFeedbackModal(choice, scenario.title, patient.name);
-    }
-
-    function showFeedbackModal(choice, scenarioTitle, patientName) {
-      const modal = document.getElementById('feedback-modal');
-      const header = document.getElementById('modal-header');
-      const title = document.getElementById('modal-title');
-      const message = document.getElementById('modal-message');
-      const insight = document.getElementById('modal-insight');
-      const undoBtn = document.getElementById('undo-btn');
-      
-      const outcomeConfig = {
-        optimal: { 
-          color: 'bg-emerald-100 border-emerald-200', 
-          titleColor: 'text-emerald-800',
-          icon: '✓',
-          label: 'Optimal Decision'
-        },
-        suboptimal: { 
-          color: 'bg-amber-100 border-amber-200', 
-          titleColor: 'text-amber-800',
-          icon: '⚠',
-          label: 'Suboptimal Decision'
-        },
-        poor: { 
-          color: 'bg-red-100 border-red-200', 
-          titleColor: 'text-red-800',
-          icon: '✗',
-          label: 'Poor Decision'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infection Control: MRSA Management</title>
+    <style>
+        :root {
+            --primary: #0056b3; /* Medical Blue */
+            --secondary: #00875a; /* Success Green */
+            --danger: #d32f2f;
+            --warning: #f57c00;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --border: #dee2e6;
+            --sidebar-width: 280px;
+            --font-main: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
-      };
-      
-      const config = outcomeConfig[choice.outcome];
-      header.className = `p-4 border-b ${config.color}`;
-      title.className = `text-lg font-semibold ${config.titleColor}`;
-      title.textContent = `${config.icon} ${config.label} - ${patientName}`;
-      message.textContent = choice.feedback;
-      insight.textContent = choice.insight;
-      
-      undoBtn.style.display = choice.outcome !== 'optimal' ? 'block' : 'none';
-      
-      modal.classList.remove('hidden');
-    }
 
-    function closeModal() {
-      document.getElementById('feedback-modal').classList.add('hidden');
-      
-      const patient = patients.find(p => p.id === gameState.currentPatientId);
-      const state = gameState.patientStates[patient.id];
-      state.scenarioIndex++;
-      
-      renderPatientList();
-      renderScenario();
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-main);
+            background: #f4f6f8;
+            color: var(--dark);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
 
-    function undoDecision() {
-      if (!gameState.lastDecision) return;
-      
-      const state = gameState.patientStates[gameState.lastDecision.patientId];
-      state.health = gameState.lastDecision.previousHealth;
-      gameState.wardSafety = gameState.lastDecision.previousWard;
-      gameState.decisions.pop();
-      
-      document.getElementById('feedback-modal').classList.add('hidden');
-      renderPatientList();
-      renderScenario();
-      
-      showToast('↩ Decision undone - try again!', 'info');
-      gameState.lastDecision = null;
-    }
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #ffffff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+        }
 
-    function checkModuleCompletion() {
-      const allComplete = Object.values(gameState.patientStates).every(state => 
-        state.scenarioIndex >= patients.find(p => gameState.patientStates[p.id] === state).scenarios.length
-      );
-      
-      if (allComplete) {
-        setTimeout(() => showCompletionModal(), 1000);
-      }
-    }
+        .brand {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: bold;
+        }
 
-    function showCompletionModal() {
-      const modal = document.getElementById('completion-modal');
-      const optimalCount = gameState.decisions.filter(d => d.outcome === 'optimal').length;
-      
-      document.getElementById('final-ward-safety').textContent = `${gameState.wardSafety}%`;
-      document.getElementById('optimal-decisions').textContent = `${optimalCount}`;
-      
-      let summary = '';
-      if (gameState.wardSafety >= 80 && optimalCount >= gameState.decisions.length * 0.7) {
-        summary = 'Excellent performance! You demonstrated strong infection control knowledge across multiple patients and successfully prevented MRSA transmission.';
-      } else if (gameState.wardSafety >= 60) {
-        summary = 'Good effort managing multiple patients. Review scenarios with suboptimal outcomes to strengthen your infection prevention strategies.';
-      } else {
-        summary = 'Ward safety was compromised. Focus on preventative measures and review MRSA transmission prevention protocols.';
-      }
-      
-      document.getElementById('completion-summary').textContent = summary;
-      modal.classList.remove('hidden');
-    }
+        .nav-menu { list-style: none; }
+        .nav-item { margin-bottom: 8px; }
+        
+        .nav-btn {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            background: transparent;
+            color: #555;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 10px;
+        }
+        
+        .nav-btn:hover { background: #e3f2fd; color: var(--primary); }
+        .nav-btn.active { background: var(--primary); color: white; }
 
-    function resetModule() {
-      gameState = {
-        currentPatientId: null,
-        currentScenarioIndex: 0,
-        wardSafety: 90,
-        patientStates: {},
-        decisions: [],
-        lastDecision: null
-      };
-      
-      patients.forEach(p => {
-        gameState.patientStates[p.id] = {
-          health: p.baseHealth,
-          scenarioIndex: 0,
-          completed: false
-        };
-      });
-      
-      document.getElementById('completion-modal').classList.add('hidden');
-      document.getElementById('feedback-modal').classList.add('hidden');
-      
-      document.getElementById('scenario-container').innerHTML = `
-        <div class="bg-white rounded-xl shadow-sm border border-slate-300 p-12 text-center">
-          <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-slate-800 mb-3">Welcome to MRSA Clinical Training</h2>
-          <p class="text-slate-600 mb-6 max-w-xl mx-auto">Select a patient from the left panel to begin their clinical scenario. You'll manage multiple patients, make critical infection control decisions, and prevent MRSA transmission across the ward.</p>
-          <div class="inline-block px-6 py-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p class="text-sm text-blue-800"><strong>5 Patients</strong> • <strong>Multiple Scenarios Each</strong> • <strong>Focus on Prevention</strong></p>
-          </div>
+        .progress-card {
+            margin-top: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .progress-title { font-size: 0.8rem; font-weight: 700; color: #666; margin-bottom: 8px; }
+        .progress-bar-bg { height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--secondary); width: 0%; transition: width 0.3s; }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .view-section { display: none; animation: fadeIn 0.3s; }
+        .view-section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Guidelines / Learning View --- */
+        .header-large { margin-bottom: 20px; }
+        .header-large h1 { font-size: 2rem; color: #2c3e50; margin-bottom: 10px; }
+        .header-large p { color: #6c757d; max-width: 800px; line-height: 1.6; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border-top: 4px solid var(--primary);
+        }
+
+        .info-card h3 { color: var(--primary); margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .info-card p, .info-card li { font-size: 0.95rem; line-height: 1.6; color: #444; margin-bottom: 10px; }
+        .info-card ul { padding-left: 20px; }
+
+        .highlight-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid var(--primary);
+            margin: 15px 0;
+            font-size: 0.9rem;
+        }
+
+        /* --- Simulation View (EMR Style) --- */
+        .emr-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+
+        .emr-left {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+        
+        .emr-right {
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .emr-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        
+        .emr-header {
+            background: #f1f3f5;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .emr-body { padding: 20px; overflow-y: auto; flex: 1; }
+
+        /* Narrative Text */
+        .narrative-text {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #212529;
+            margin-bottom: 25px;
+        }
+
+        /* Vitals Dashboard */
+        .vitals-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        }
+        .vital-item {
+            background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid var(--border);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .vital-label { font-size: 0.75rem; text-transform: uppercase; color: #6c757d; font-weight: 700; }
+        .vital-value { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+        .vital-value.critical { color: var(--danger); }
+
+        /* Choices */
+        .choice-btn {
+            width: 100%;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-left: 4px solid #ced4da;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .choice-btn:hover {
+            border-left-color: var(--primary);
+            background: #f8f9fa;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .choice-title { font-weight: 600; color: #343a40; display: block; margin-bottom: 4px; }
+        .choice-desc { font-size: 0.85rem; color: #6c757d; }
+
+        /* Feedback Area */
+        .feedback-panel {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: none;
+        }
+        .feedback-panel.correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feedback-panel.incorrect { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .next-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            border-radius: 6px; font-weight: 600; cursor: pointer; float: right; margin-top: 15px;
+            display: none;
+        }
+        .next-btn:hover { background: #004494; }
+
+        /* Risk Meters */
+        .meter-label { font-size: 0.8rem; font-weight: 600; color: #495057; margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .meter-track { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-bottom: 15px; }
+        .meter-fill { height: 100%; width: 50%; transition: width 0.5s; }
+        .fill-risk { background: linear-gradient(90deg, #4caf50, #f44336); } /* Green to Red */
+        .fill-health { background: linear-gradient(90deg, #f44336, #4caf50); } /* Red to Green */
+
+        .status-badge {
+            display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-safe { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">M</div>
+            <span>MedTrain: MRSA</span>
         </div>
-      `;
-      
-      renderPatientList();
-      showToast('🔄 Training module reset', 'info');
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <button class="nav-btn active" onclick="switchView('learn')">
+                    <span>📘</span> Knowledge Base
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-btn" onclick="switchView('sim')">
+                    <span>🏥</span> Clinical Simulation
+                </button>
+            </li>
+        </ul>
+
+        <div class="progress-card">
+            <div class="progress-title">Training Progress</div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="total-progress"></div>
+            </div>
+            <div style="font-size: 0.75rem; color: #888; margin-top: 5px;" id="progress-text">0% Complete</div>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        
+        <!-- LEARNING MODULE -->
+        <section id="view-learn" class="view-section active">
+            <div class="header-large">
+                <h1>MRSA Infection Control</h1>
+                <p>Methicillin-Resistant <i>Staphylococcus aureus</i> is a multidrug-resistant organism (MDRO) requiring strict adherence to infection control protocols. Review the guidelines below before starting the simulation.</p>
+            </div>
+
+            <div class="info-grid">
+                <!-- CARD 1: Transmission -->
+                <div class="info-card">
+                    <h3>🦠 Transmission Dynamics</h3>
+                    <p>MRSA is primarily transmitted via:</p>
+                    <ul>
+                        <li><strong>Direct Contact:</strong> Contaminated hands of healthcare workers.</li>
+                        <li><strong>Fomites:</strong> High-touch surfaces (bed rails, door handles, stethoscopes).</li>
+                        <li><strong>Droplets:</strong> In rare cases of MRSA pneumonia.</li>
+                    </ul>
+                    <div class="highlight-box">
+                        <strong>The 5 Moments of Hand Hygiene:</strong>
+                        <ol>
+                            <li>Before touching a patient</li>
+                            <li>Before clean/aseptic procedures</li>
+                            <li>After body fluid exposure risk</li>
+                            <li>After touching a patient</li>
+                            <li>After touching patient surroundings</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- CARD 2: Screening & Isolation -->
+                <div class="info-card">
+                    <h3>🛡️ Screening & Isolation</h3>
+                    <p><strong>Admission Screening:</strong> Swabs (Nasal, Groin/Perineum) required for:</p>
+                    <ul>
+                        <li>Patients from other healthcare facilities/nursing homes.</li>
+                        <li>History of MRSA colonization.</li>
+                        <li>Patients with chronic wounds or indwelling devices.</li>
+                    </ul>
+                    <p><strong>Contact Precautions:</strong></p>
+                    <ul>
+                        <li><strong>Placement:</strong> Single room (preferred) or Cohort (MRSA with MRSA).</li>
+                        <li><strong>PPE:</strong> Gloves + Gown on entry. Remove before exit.</li>
+                        <li><strong>Signage:</strong> Clear door signage required.</li>
+                    </ul>
+                </div>
+
+                <!-- CARD 3: Environmental Hygiene -->
+                <div class="info-card">
+                    <h3>🧹 Environmental Hygiene</h3>
+                    <p>MRSA can survive on surfaces for days to months.</p>
+                    <ul>
+                        <li><strong>Daily Clean:</strong> Focus on high-touch surfaces using hospital-grade disinfectant.</li>
+                        <li><strong>Shared Equipment:</strong> BP cuffs, thermometers must be cleaned <i>between every patient</i>.</li>
+                        <li><strong>Terminal Clean:</strong> Deep clean upon discharge including curtains change.</li>
+                    </ul>
+                    <div class="highlight-box">
+                        <strong>Alert:</strong> Bed curtains are a frequent, overlooked reservoir for MRSA.
+                    </div>
+                </div>
+            </div>
+            
+            <button class="choice-btn" style="margin-top: 30px; text-align: center; font-weight: bold; background: var(--primary); color: white; border: none;" onclick="switchView('sim')">
+                Start Clinical Simulation
+            </button>
+        </section>
+
+        <!-- SIMULATION MODULE -->
+        <section id="view-sim" class="view-section">
+            <div class="emr-container">
+                
+                <!-- LEFT: Narrative & Decisions -->
+                <div class="emr-left">
+                    <div class="emr-card" style="flex:1;">
+                        <div class="emr-header">
+                            <span>CASE NARRATIVE</span>
+                            <span id="turn-indicator">Phase 1 of 5</span>
+                        </div>
+                        <div class="emr-body">
+                            <div id="narrative-text" class="narrative-text">
+                                Loading scenario...
+                            </div>
+                            
+                            <div id="choices-area">
+                                <!-- Choices injected here -->
+                            </div>
+
+                            <div id="feedback-area" class="feedback-panel"></div>
+                            <button id="sim-next-btn" class="next-btn" onclick="sim.nextTurn()">Continue</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: Vitals & Status -->
+                <div class="emr-right">
+                    <div class="emr-card">
+                        <div class="emr-header">PATIENT STATUS</div>
+                        <div class="emr-body">
+                            <div class="vitals-grid">
+                                <div class="vital-item">
+                                    <span class="vital-label">TEMP</span>
+                                    <span class="vital-value critical" id="val-temp">39.2°C</span>
+                                </div>
+                                <div class="vital-item">
+                                    <span class="vital-label">BP</span>
+                                    <span class="vital-value" id="val-bp">100/65</span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <div class="meter-label">
+                                    <span>Patient Health</span>
+                                    <span id="hp-text">80%</span>
+                                </div>
+                                <div class="meter-track">
+                                    <div class="meter-fill fill-health" id="hp-bar" style="width: 80%;"></div>
+                                </div>
+
+                                <div class="meter-label">
+                                    <span>Ward Contamination Risk</span>
+                                    <span id="risk-text">10%</span>
+                                </div>
+                                <div class="meter-track">
+                                    <div class="meter-fill fill-risk" id="risk-bar" style="width: 10%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="emr-card" style="flex: 1;">
+                        <div class="emr-header">INFECTION CONTROL LOG</div>
+                        <div class="emr-body" id="audit-log" style="font-size: 0.85rem; color: #666; font-family: monospace;">
+                            <div>> Session Started</div>
+                            <div>> Patient Admitted</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+<script>
+    // --- Navigation Logic ---
+    function switchView(viewId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(`view-${viewId}`).classList.add('active');
+        
+        // Update button state
+        const btns = document.querySelectorAll('.nav-btn');
+        if(viewId === 'learn') btns[0].classList.add('active');
+        if(viewId === 'sim') btns[1].classList.add('active');
     }
 
-    function showToast(message, type = 'info') {
-      const container = document.getElementById('toast-container');
-      const colors = {
-        success: 'bg-emerald-600',
-        warning: 'bg-amber-600',
-        error: 'bg-red-600',
-        info: 'bg-blue-600'
-      };
-      
-      const toast = document.createElement('div');
-      toast.className = `toast ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm`;
-      toast.textContent = message;
-      container.appendChild(toast);
-      
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s';
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
+    // --- Simulation Logic ---
+    class Simulation {
+        constructor() {
+            this.hp = 80;
+            this.risk = 10;
+            this.turn = 0;
+            
+            // Scenario Data with Educational Depth
+            this.phases = [
+                {
+                    title: "Admission Assessment",
+                    text: "Patient J.D. (45M) is admitted from a nursing home with a purulent leg wound. He is febrile (39.2°C). The emergency department is overcrowded. You must decide on placement and initial orders.",
+                    choices: [
+                        {
+                            title: "Isolate & Screen",
+                            desc: "Place in single room, Contact Precautions (Gown/Glove), and swab for MRSA PCR.",
+                            correct: true,
+                            feedback: "Correct. Nursing home residents are high-risk for MRSA colonization. Isolation prevents immediate transmission. PCR allows rapid detection.",
+                            fx: { hp: 0, risk: -5 }
+                        },
+                        {
+                            title: "Standard Admission",
+                            desc: "Place in 4-bed bay, Standard Precautions, start IV Antibiotics.",
+                            correct: false,
+                            feedback: "Critical Error. Placing a high-risk patient in a multi-bed bay exposes other patients. Standard precautions are insufficient for draining wounds.",
+                            fx: { hp: 0, risk: 25 }
+                        }
+                    ]
+                },
+                {
+                    title: "Antibiotic Selection",
+                    text: "The wound is drained. The lab calls: Gram-positive cocci in clusters. Patient is hypotensive. You need to choose empiric therapy.",
+                    choices: [
+                        {
+                            title: "IV Vancomycin",
+                            desc: "Start Vancomycin dosing based on weight and renal function.",
+                            correct: true,
+                            feedback: "Correct. Vancomycin is the first-line therapy for suspected MRSA in hospitalized patients. It covers resistant strains that Beta-lactams miss.",
+                            fx: { hp: 10, risk: 0 }
+                        },
+                        {
+                            title: "IV Flucloxacillin",
+                            desc: "Start standard anti-staphylococcal penicillin.",
+                            correct: false,
+                            feedback: "Incorrect. MRSA possesses the mecA gene, encoding PBP2a, which renders Flucloxacillin ineffective. Delay in appropriate therapy increases mortality.",
+                            fx: { hp: -20, risk: 0 }
+                        }
+                    ]
+                },
+                {
+                    title: "Daily Care & Hygiene",
+                    text: "Day 2. The patient needs vitals and wound care. The nurse is busy and enters the room to silence an alarm.",
+                    choices: [
+                        {
+                            title: "Don PPE for Alarm",
+                            desc: "Put on Gown and Gloves before entering, even just for the alarm.",
+                            correct: true,
+                            feedback: "Correct. 'Patient Surroundings' are part of the 5 Moments. MRSA contaminates bed rails and pumps. Touching them without PPE spreads bacteria to the corridor.",
+                            fx: { hp: 0, risk: -5 }
+                        },
+                        {
+                            title: "Quick Entry (Hand Gel)",
+                            desc: "Use hand gel, silence alarm, use gel on exit.",
+                            correct: false,
+                            feedback: "Incorrect. While hand hygiene is good, Contact Precautions require Gown/Gloves for entering the room to prevent clothing contamination.",
+                            fx: { hp: 0, risk: 15 }
+                        }
+                    ]
+                },
+                {
+                    title: "Shared Equipment",
+                    text: "A nursing assistant brings the vitals machine from the room next door. It was used on a non-MRSA patient.",
+                    choices: [
+                        {
+                            title: "Clean Before Use",
+                            desc: "Wipe down the entire machine with disinfectant wipes before bringing it in.",
+                            correct: true,
+                            feedback: "Correct. But ideally, MRSA patients should have dedicated equipment. If sharing is unavoidable, cleaning *between* patients is non-negotiable.",
+                            fx: { hp: 0, risk: -5 }
+                        },
+                        {
+                            title: "Clean After Use",
+                            desc: "Use the machine, then clean it thoroughly before taking it out.",
+                            correct: false,
+                            feedback: "Risky. While cleaning on exit protects the *next* patient, bringing the machine in without cleaning assumes the previous patient wasn't an asymptomatic carrier.",
+                            fx: { hp: 0, risk: 5 }
+                        }
+                    ]
+                },
+                {
+                    title: "Discharge Planning",
+                    text: "Patient is improving. Preparing for discharge. The room needs to be turned over for a surgical patient.",
+                    choices: [
+                        {
+                            title: "Terminal Clean",
+                            desc: "Request environmental services for 'Terminal Clean' including curtain change.",
+                            correct: true,
+                            feedback: "Correct. MRSA persists in dust and fabric. Curtains are a major reservoir and must be changed on discharge of an isolation patient.",
+                            fx: { hp: 5, risk: -20 }
+                        },
+                        {
+                            title: "Standard Clean",
+                            desc: "Wipe down bed and table, change sheets.",
+                            correct: false,
+                            feedback: "Insufficient. Standard cleaning misses floors, walls, and curtains where MRSA may persist, putting the next surgical patient at high risk of infection.",
+                            fx: { hp: 0, risk: 30 }
+                        }
+                    ]
+                }
+            ];
+
+            this.render();
+        }
+
+        render() {
+            if (this.turn >= this.phases.length) {
+                this.endGame();
+                return;
+            }
+
+            const phase = this.phases[this.turn];
+            
+            // Text
+            document.getElementById('turn-indicator').innerText = `PHASE ${this.turn + 1} OF ${this.phases.length}`;
+            document.getElementById('narrative-text').innerText = phase.text;
+
+            // Choices
+            const area = document.getElementById('choices-area');
+            area.innerHTML = '';
+            
+            phase.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.innerHTML = `<span class="choice-title">${choice.title}</span><span class="choice-desc">${choice.desc}</span>`;
+                btn.onclick = () => this.makeChoice(index);
+                area.appendChild(btn);
+            });
+
+            // Hide Feedback
+            document.getElementById('feedback-area').style.display = 'none';
+            document.getElementById('sim-next-btn').style.display = 'none';
+        }
+
+        makeChoice(index) {
+            const phase = this.phases[this.turn];
+            const choice = phase.choices[index];
+            
+            // Apply Effects
+            this.hp = Math.min(100, Math.max(0, this.hp + choice.fx.hp));
+            this.risk = Math.min(100, Math.max(0, this.risk + choice.fx.risk));
+            
+            // Update UI Bars
+            document.getElementById('hp-bar').style.width = this.hp + '%';
+            document.getElementById('hp-text').innerText = this.hp + '%';
+            document.getElementById('risk-bar').style.width = this.risk + '%';
+            document.getElementById('risk-text').innerText = this.risk + '%';
+            
+            // Update Log
+            const log = document.getElementById('audit-log');
+            const entry = document.createElement('div');
+            entry.innerText = `> ${choice.title}: ${choice.correct ? 'Protocol Followed' : 'Protocol Breach'}`;
+            entry.style.color = choice.correct ? 'green' : 'red';
+            log.appendChild(entry);
+
+            // Show Feedback
+            const fb = document.getElementById('feedback-area');
+            fb.style.display = 'block';
+            fb.className = `feedback-panel ${choice.correct ? 'correct' : 'incorrect'}`;
+            fb.innerHTML = `<strong>${choice.correct ? 'Protocol Adhered' : 'Protocol Deviation'}</strong><br>${choice.feedback}`;
+            
+            // Disable buttons
+            document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+            document.getElementById('sim-next-btn').style.display = 'block';
+            
+            // Progress Bar
+            const prog = ((this.turn + 1) / this.phases.length) * 100;
+            document.getElementById('total-progress').style.width = prog + '%';
+            document.getElementById('progress-text').innerText = Math.round(prog) + '% Complete';
+        }
+
+        nextTurn() {
+            this.turn++;
+            this.render();
+        }
+
+        endGame() {
+            document.getElementById('narrative-text').innerHTML = `
+                <h3 style="color:${this.risk < 20 ? 'green' : 'red'}">Simulation Complete</h3>
+                <p>Final Patient Health: ${this.hp}%</p>
+                <p>Final Contamination Risk: ${this.risk}%</p>
+                <p>${this.risk < 20 ? 'Excellent work. You maintained strict infection control standards.' : 'Warning: High risk of cross-contamination detected. Please review the Knowledge Base.'}</p>
+            `;
+            document.getElementById('choices-area').innerHTML = '<button class="choice-btn" onclick="location.reload()">Restart Simulation</button>';
+            document.getElementById('feedback-area').style.display = 'none';
+            document.getElementById('sim-next-btn').style.display = 'none';
+        }
     }
 
-    initializeApp();
-  </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9bc03d05b01e1c5f',t:'MTc2ODA5MDcyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    const sim = new Simulation();
+</script>
+
+</body>
 </html>
